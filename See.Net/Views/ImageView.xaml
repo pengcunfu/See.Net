@@ -1,4 +1,4 @@
-<UserControl x:Class="See.Net.Views.ImageView"
+﻿<UserControl x:Class="See.Net.Views.ImageView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid>
@@ -7,12 +7,17 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <ScrollViewer Grid.Row="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
-            <Grid Background="White">
+        <Border Grid.Row="0" Background="White">
+            <Grid>
                 <Image x:Name="Pic" Source="{Binding Image}" Stretch="Uniform"
-                       RenderOptions.BitmapScalingMode="HighQuality"/>
+                       RenderOptions.BitmapScalingMode="HighQuality">
+                    <Image.RenderTransform>
+                        <ScaleTransform x:Name="ScaleTransform" ScaleX="1" ScaleY="1" 
+                                        CenterX="0" CenterY="0"/>
+                    </Image.RenderTransform>
+                </Image>
             </Grid>
-        </ScrollViewer>
+        </Border>
 
         <Border Grid.Row="1" Background="#F7F7F7" BorderBrush="#E0E0E0" BorderThickness="0,1,0,0" Padding="8,4">
             <StackPanel Orientation="Horizontal">

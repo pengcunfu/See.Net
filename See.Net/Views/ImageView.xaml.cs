@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
 using See.Net.ViewModels;
@@ -27,8 +27,7 @@ public partial class ImageView : UserControl
     private void OnVmPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (e.PropertyName is nameof(ImageContentViewModel.IsFit)
-            or nameof(ImageContentViewModel.DisplayWidth)
-            or nameof(ImageContentViewModel.DisplayHeight))
+            or nameof(ImageContentViewModel.Zoom))
         {
             ApplyLayout();
         }
@@ -40,14 +39,14 @@ public partial class ImageView : UserControl
         if (_vm.IsFit)
         {
             Pic.Stretch = System.Windows.Media.Stretch.Uniform;
-            Pic.Width = double.NaN;
-            Pic.Height = double.NaN;
+            ScaleTransform.ScaleX = 1;
+            ScaleTransform.ScaleY = 1;
         }
         else
         {
-            Pic.Stretch = System.Windows.Media.Stretch.Fill;
-            Pic.Width = _vm.DisplayWidth;
-            Pic.Height = _vm.DisplayHeight;
+            Pic.Stretch = System.Windows.Media.Stretch.None;
+            ScaleTransform.ScaleX = _vm.Zoom;
+            ScaleTransform.ScaleY = _vm.Zoom;
         }
     }
 
