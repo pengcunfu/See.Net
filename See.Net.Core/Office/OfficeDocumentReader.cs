@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 
 namespace See.Net.Core.Office;
 
@@ -26,6 +26,9 @@ public static class OfficeDocumentReader
     /// <summary>解析文档，返回对应模型（WordBlocksModel / SheetSetModel / SlidesModel）。</summary>
     public static object Read(string path)
     {
+        // 验证文件
+        OfficeExceptionHelper.ValidateFile(path);
+        
         var kind = GetParserKind(Path.GetExtension(path));
         if (kind is null)
         {
@@ -34,15 +37,16 @@ public static class OfficeDocumentReader
                 $"（旧版二进制格式可切换「网页预览」尝试）。");
         }
 
+        // 使用异常处理包装器
         return kind switch
         {
-            ParserKind.OpenXmlWord => OpenXmlReaders.ReadWord(path),
-            ParserKind.OpenXmlSheet => OpenXmlReaders.ReadSheet(path),
-            ParserKind.OpenXmlSlides => OpenXmlReaders.ReadSlides(path),
-            ParserKind.Rtf => RtfTextExtractor.Read(path),
-            ParserKind.OdfWord => OdfReaders.ReadWord(path),
-            ParserKind.OdfSheet => OdfReaders.ReadSheet(path),
-            _ => OdfReaders.ReadSlides(path),
+            ParserKind.OpenXmlWord => OfficeExceptionHelper.WrapOfficeOperation("Word", path, () => OpenXmlReaders.ReadWord(path)),
+            ParserKind.OpenXmlSheet => OfficeExceptionHelper.WrapOfficeOperation("Excel", path, () => OpenXmlReaders.ReadSheet(path)),
+            ParserKind.OpenXmlSlides => OfficeExceptionHelper.WrapOfficeOperation("PowerPoint", path, () => OpenXmlReaders.ReadSlides(path)),
+            ParserKind.Rtf => OfficeExceptionHelper.WrapOfficeOperation("RTF", path, () => RtfTextExtractor.Read(path)),
+            ParserKind.OdfWord => OfficeExceptionHelper.WrapOfficeOperation("ODT", path, () => OdfReaders.ReadWord(path)),
+            ParserKind.OdfSheet => OfficeExceptionHelper.WrapOfficeOperation("ODS", path, () => OdfReaders.ReadSheet(path)),
+            _ => OfficeExceptionHelper.WrapOfficeOperation("ODP", path, () => OdfReaders.ReadSlides(path)),
         };
     }
 

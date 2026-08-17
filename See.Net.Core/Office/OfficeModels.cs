@@ -1,4 +1,4 @@
-namespace See.Net.Core.Office;
+﻿namespace See.Net.Core.Office;
 
 /// <summary>办公文档大类。</summary>
 public enum OfficeKind
@@ -30,6 +30,9 @@ public enum WordBlockKind
     Heading1,
     Heading2,
     Heading3,
+    Heading4,
+    Heading5,
+    Heading6,
     Paragraph,
     Bullet,
     TableRow,

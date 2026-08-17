@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
@@ -16,6 +16,24 @@ internal static class OpenXmlReaders
 {
     public static WordBlocksModel ReadWord(string path)
     {
+        // 验证文档格式
+        try
+        {
+            using var validationFs = OfficeDocumentReader.OpenShared(path);
+            using var validationDoc = WordprocessingDocument.Open(validationFs, false);
+            var validationBody = validationDoc.MainDocumentPart?.Document?.Body;
+            if (validationBody is null) return new WordBlocksModel();
+        }
+        catch (FileFormatException ex)
+        {
+            throw new InvalidDataException($"Word文档格式损坏: {ex.Message}", ex);
+        }
+        catch (Exception ex) when (ex is not IOException && ex is not UnauthorizedAccessException)
+        {
+            throw new InvalidDataException($"读取Word文档失败: {ex.Message}", ex);
+        }
+        
+        // 重新打开文档进行处理
         using var fs = OfficeDocumentReader.OpenShared(path);
         using var doc = WordprocessingDocument.Open(fs, false);
         var body = doc.MainDocumentPart?.Document?.Body;
@@ -96,127 +114,115 @@ internal static class OpenXmlReaders
         {
             '1' => WordBlockKind.Heading1,
             '2' => WordBlockKind.Heading2,
-            _ => WordBlockKind.Heading3,
+            '3' => WordBlockKind.Heading3,
+            '4' => WordBlockKind.Heading4,
+            '5' => WordBlockKind.Heading5,
+            '6' => WordBlockKind.Heading6,
+            _ => WordBlockKind.Paragraph,
         };
     }
 
     public static SheetSetModel ReadSheet(string path)
     {
-        using var fs = OfficeDocumentReader.OpenShared(path);
-        using var doc = SpreadsheetDocument.Open(fs, false);
-        var workbook = doc.WorkbookPart ?? throw new InvalidDataException("工作簿结构无效");
-        var (shared, sharedTruncated) = ReadSharedStrings(workbook);
-
-        var nameById = new Dictionary<string, string>();
-        var wb = workbook.Workbook;
-        if (wb?.Sheets is not null)
+        try
         {
-            foreach (var sheet in wb.Sheets.ChildElements.OfType<Sheet>())
+            using var fs = OfficeDocumentReader.OpenShared(path);
+            using var doc = SpreadsheetDocument.Open(fs, false);
+            var workbook = doc.WorkbookPart;
+            if (workbook is null) return new SheetSetModel();
+
+            // 先读取共享字符串，有大小限制
+            var sharedStrings = new List<string>();
+            bool sharedTruncated = false;
+            var sharedPart = workbook.SharedStringTablePart;
+            if (sharedPart is not null)
             {
-                if (sheet.Id?.Value is { } id && sheet.Name?.Value is { } name)
-                    nameById[id] = name;
+                foreach (var item in sharedPart.SharedStringTable.Elements<SharedStringItem>())
+                {
+                    if (sharedStrings.Count >= OfficeDocumentReader.MaxSharedStrings)
+                    {
+                        sharedTruncated = true;
+                        break;
+                    }
+                    sharedStrings.Add(item.Text?.Text ?? "");
+                }
             }
-        }
 
-        var sheets = new List<SheetData>();
-        bool anyTruncated = sharedTruncated;
-        long totalRows = 0;
-        int order = 1;
-        foreach (var pair in workbook.Parts)
+            var sheets = new List<SheetData>();
+            long totalRows = 0;
+            bool anyTruncated = false;
+
+            foreach (var sheet in workbook.Workbook.Sheets.Elements<Sheet>())
+            {
+                var part = workbook.GetPartById(sheet.Id) as WorksheetPart;
+                if (part is null) continue;
+
+                // 预估行数，如果过大则跳过详细读取
+                long? sheetRows = TryGetDimensionRows(part);
+                if (sheetRows > OfficeDocumentReader.MaxSheetRows)
+                {
+                    sheets.Add(new SheetData
+                    {
+                        Name = sheet.Name,
+                        Rows = Array.Empty<string[]>(),
+                        Truncated = true,
+                    });
+                    totalRows += sheetRows ?? 0;
+                    anyTruncated = true;
+                    continue;
+                }
+
+                var rows = new List<string[]>();
+                int maxColumns = 0;
+                foreach (var row in part.Worksheet.Elements<Row>())
+                {
+                    if (rows.Count >= OfficeDocumentReader.MaxSheetRows)
+                    {
+                        anyTruncated = true;
+                        break;
+                    }
+
+                    var cells = new List<string>();
+                    foreach (var cell in row.Elements<Cell>())
+                    {
+                        string value = GetCellValue(cell, sharedStrings, sharedTruncated);
+                        cells.Add(value);
+                    }
+                    if (cells.Count > maxColumns) maxColumns = cells.Count;
+                    rows.Add(cells.ToArray());
+                }
+
+                sheets.Add(new SheetData
+                {
+                    Name = sheet.Name,
+                    Rows = rows.ToArray(),
+                    Truncated = anyTruncated,
+                    MaxColumns = maxColumns,
+                });
+                totalRows += rows.Count;
+            }
+
+            return new SheetSetModel 
+            { 
+                Sheets = sheets.ToArray(),
+                Truncated = anyTruncated,
+                TotalRows = totalRows
+            };
+        }
+        catch (FileFormatException ex)
         {
-            if (pair.OpenXmlPart is not WorksheetPart part) continue;
-            string sheetName = nameById.TryGetValue(pair.RelationshipId, out var n) ? n : $"工作表 {order}";
-            var (data, truncated, rows) = ReadOneSheet(sheetName, part, shared, sharedTruncated);
-            sheets.Add(data);
-            anyTruncated |= truncated;
-            totalRows += rows;
-            order++;
+            throw new InvalidDataException($"Excel文档格式损坏: {ex.Message}", ex);
         }
-
-        if (sheets.Count == 0) throw new InvalidDataException("工作簿中没有工作表");
-
-        return new SheetSetModel { Sheets = sheets, Truncated = anyTruncated, TotalRows = totalRows };
+        catch (Exception ex) when (ex is not IOException && ex is not UnauthorizedAccessException)
+        {
+            throw new InvalidDataException($"读取Excel文档失败: {ex.Message}", ex);
+        }
     }
 
-    private static (List<string>, bool) ReadSharedStrings(WorkbookPart workbook)
+    private static string GetCellValue(Cell cell, List<string> shared, bool sharedTruncated)
     {
-        var list = new List<string>();
-        var part = workbook.SharedStringTablePart;
-        if (part is null) return (list, false);
-
-        bool truncated = false;
-        using var reader = OpenXmlReader.Create(part);
-        while (reader.Read())
-        {
-            if (reader.ElementType != typeof(SharedStringItem)) continue;
-            if (list.Count >= OfficeDocumentReader.MaxSharedStrings)
-            {
-                truncated = true;
-                break;
-            }
-            var item = (SharedStringItem)reader.LoadCurrentElement()!;
-            list.Add(item.InnerText.Trim());
-        }
-        return (list, truncated);
-    }
-
-    private static (SheetData, bool, long) ReadOneSheet(
-        string name, WorksheetPart part, List<string> shared, bool sharedTruncated)
-    {
-        long realRows = TryGetDimensionRows(part) ?? 0;
-        var rows = new List<string[]>();
-        int maxCols = 0;
-        bool truncated = false;
-
-        using var reader = OpenXmlReader.Create(part);
-        while (reader.Read())
-        {
-            if (reader.ElementType != typeof(Row)) continue;
-            if (rows.Count >= OfficeDocumentReader.MaxSheetRows)
-            {
-                truncated = true;
-                break;
-            }
-
-            var row = (Row)reader.LoadCurrentElement()!;
-            var values = new List<string>();
-            foreach (var cell in row.ChildElements.OfType<Cell>())
-            {
-                values.Add(CellText(cell, shared, sharedTruncated));
-            }
-            while (values.Count > 0 && values[^1].Length == 0) values.RemoveAt(values.Count - 1);
-            if (values.Count == 0) continue;
-
-            maxCols = Math.Max(maxCols, values.Count);
-            rows.Add(values.ToArray());
-        }
-
-        for (int k = 0; k < rows.Count; k++)
-        {
-            var r = rows[k];
-            if (r.Length < maxCols)
-            {
-                var padded = new string[maxCols];
-                Array.Copy(r, padded, r.Length);
-                rows[k] = padded;
-            }
-        }
-
-        var data = new SheetData
-        {
-            Name = name,
-            Columns = Enumerable.Range(0, maxCols).Select(ColumnLetter).ToArray(),
-            Rows = rows,
-            Truncated = truncated,
-            MaxColumns = maxCols,
-        };
-        return (data, truncated || sharedTruncated, Math.Max(realRows, rows.Count));
-    }
-
-    private static string CellText(Cell cell, List<string> shared, bool sharedTruncated)
-    {
-        var type = cell.DataType?.Value;
         string? raw = cell.CellValue?.Text;
+        var type = cell.DataType?.Value;
         if (type == CellValues.SharedString)
         {
             if (int.TryParse(raw, out int idx) && idx >= 0 && idx < shared.Count)
@@ -255,6 +261,24 @@ internal static class OpenXmlReaders
 
     public static SlidesModel ReadSlides(string path)
     {
+        // 验证文档格式
+        try
+        {
+            using var validationFs = OfficeDocumentReader.OpenShared(path);
+            using var validationDoc = PresentationDocument.Open(validationFs, false);
+            var validationPres = validationDoc.PresentationPart;
+            if (validationPres is null) throw new InvalidDataException("演示文稿结构无效");
+        }
+        catch (FileFormatException ex)
+        {
+            throw new InvalidDataException($"PowerPoint文档格式损坏: {ex.Message}", ex);
+        }
+        catch (Exception ex) when (ex is not IOException && ex is not UnauthorizedAccessException)
+        {
+            throw new InvalidDataException($"读取PowerPoint文档失败: {ex.Message}", ex);
+        }
+        
+        // 重新打开文档进行处理
         using var fs = OfficeDocumentReader.OpenShared(path);
         using var doc = PresentationDocument.Open(fs, false);
         var pres = doc.PresentationPart ?? throw new InvalidDataException("演示文稿结构无效");

@@ -6,7 +6,7 @@
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="False" Width="960" Height="680"
         WindowStartupLocation="CenterScreen" PreviewKeyDown="OnPreviewKeyDown"
-        ResizeMode="NoResize">
+        ResizeMode="CanResize">
     <Window.Resources>
         <DataTemplate DataType="{x:Type vm:TextContentViewModel}">
             <views:TextView/>
@@ -33,14 +33,17 @@
             <views:AudioView/>
         </DataTemplate>
     </Window.Resources>
-    <Border Margin="80" CornerRadius="12" Background="#D9000000">
-        <Border Margin="18" CornerRadius="8" Background="White" BorderBrush="#D0D0D0" BorderThickness="1">
+    <!-- 外层半透明遮罩，点击关闭 -->
+    <Border Background="#80000000" MouseLeftButtonDown="OnCloseClick">
+        <Border Margin="40" CornerRadius="8" Background="White" BorderBrush="#D0D0D0" BorderThickness="1">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
-                <Border Grid.Row="0" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="14,8">
+                <!-- 标题栏，支持拖拽 -->
+                <Border Grid.Row="0" Background="#FAFAFA" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="14,8"
+                        MouseLeftButtonDown="OnTitleBarDrag" Cursor="SizeAll">
                     <Grid>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="*"/>

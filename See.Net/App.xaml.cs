@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
@@ -170,27 +170,94 @@ public partial class App : Application
 
     private void OnDispatcherUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        LogException(e.Exception);
-        MessageBox.Show($"发生未处理的异常：{e.Exception.Message}", "See.Net", MessageBoxButton.OK, MessageBoxImage.Error);
+        LogException(e.Exception, "UI线程");
+        
+        // 提供更详细的错误信息
+        var errorMessage = $"发生未处理的异常:{e.Exception.Message}";
+        
+        // 如果是Office文档相关的异常，提供更具体的指导
+        if (e.Exception.Message.Contains("Office") || 
+            e.Exception.Message.Contains("文档") || 
+            e.Exception.Message.Contains("Excel") || 
+            e.Exception.Message.Contains("Word") ||
+            e.Exception.Message.Contains("PowerPoint"))
+        {
+            errorMessage += "建议:- 检查文件是否损坏或被加密\n- 尝试使用网页预览模式\n- 确认文件没有被其他程序占用";
+        }
+        
+        MessageBox.Show(errorMessage, "See.Net 错误", MessageBoxButton.OK, MessageBoxImage.Error);
         e.Handled = true;
     }
 
     private void OnAppDomainUnhandledException(object sender, UnhandledExceptionEventArgs e)
     {
-        if (e.ExceptionObject is Exception ex) LogException(ex);
+        if (e.ExceptionObject is Exception ex)
+        {
+            LogException(ex, "后台线程");
+            
+            // 如果是严重异常（非UI线程），记录更详细的信息
+            if (e.IsTerminating)
+            {
+                var criticalMessage = $"程序遇到严重错误，即将退出:{ex.Message}详细信息已记录到: {AppPaths.LogDirectory}";
+                
+                try
+                {
+                    // 尝试显示最后的信息
+                    MessageBox.Show(criticalMessage, "See.Net 严重错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+                catch
+                {
+                    // 如果连MessageBox都无法显示，至少确保日志已记录
+                }
+            }
+        }
     }
 
-    private static void LogException(Exception ex)
+    private static void LogException(Exception ex, string context = "General")
     {
         try
         {
             AppPaths.EnsureCreated();
             string file = Path.Combine(AppPaths.LogDirectory, $"error-{DateTime.Now:yyyyMMddHHmmss}.log");
-            File.AppendAllText(file, $"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {ex}\n\n");
+            
+            // 构建详细的错误信息
+            var logBuilder = new System.Text.StringBuilder();
+            logBuilder.AppendLine($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {context}异常");
+            logBuilder.AppendLine($"消息: {ex.Message}");
+            logBuilder.AppendLine($"类型: {ex.GetType().FullName}");
+            logBuilder.AppendLine($"源: {ex.Source}");
+            
+            if (!string.IsNullOrEmpty(ex.StackTrace))
+            {
+                logBuilder.AppendLine("堆栈跟踪:");
+                logBuilder.AppendLine(ex.StackTrace);
+            }
+            
+            if (ex.InnerException != null)
+            {
+                logBuilder.AppendLine("内部异常:");
+                logBuilder.AppendLine($"消息: {ex.InnerException.Message}");
+                if (!string.IsNullOrEmpty(ex.InnerException.StackTrace))
+                {
+                    logBuilder.AppendLine("内部堆栈跟踪:");
+                    logBuilder.AppendLine(ex.InnerException.StackTrace);
+                }
+            }
+            
+            logBuilder.AppendLine(new string('-', 80));
+            logBuilder.AppendLine();
+            
+            File.AppendAllText(file, logBuilder.ToString());
         }
-        catch
+        catch (Exception logEx)
         {
-            // 日志写入失败时忽略
+            // 日志写入失败时，尝试输出到调试控制台
+            System.Diagnostics.Debug.WriteLine($"Failed to write exception log: {logEx.Message}");
+            System.Diagnostics.Debug.WriteLine($"Original exception: {ex.Message}");
         }
     }
 }
+
+
+
+

@@ -1,4 +1,4 @@
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -39,10 +39,13 @@ public sealed partial class OfficeContentViewModel : ObservableObject, IDisposab
     {
         try
         {
-            return CoreWebView2Environment.GetAvailableBrowserVersionString() is not null;
+            var version = CoreWebView2Environment.GetAvailableBrowserVersionString();
+            return !string.IsNullOrEmpty(version);
         }
-        catch
+        catch (Exception ex)
         {
+            // WebView2 运行时不可用或初始化失败
+            System.Diagnostics.Debug.WriteLine($"WebView2 runtime check failed: {ex.Message}");
             return false;
         }
     }
@@ -139,16 +142,56 @@ public sealed partial class OfficeContentViewModel : ObservableObject, IDisposab
             Structured = model;
             State = LoadState.Loaded;
         }
-        catch ( NotSupportedException)
+        catch (NotSupportedException)
         {
             State = LoadState.Unsupported;
             StructuredNotice = $"此格式暂不支持结构化解析（{_extension}）。";
         }
-        catch (Exception ex)
+        catch (IOException ex)
         {
-            // 文档损坏 / 加密等：结构化失败，但若网页引擎可用仍可切换尝试
+            // 文件读取错误（文件被占用、权限问题等）
+            State = LoadState.Error;
+            Error = $"文件读取失败: {ex.Message}";
+            if (CanUseWeb)
+            {
+                UseWeb = true;
+                StructuredNotice = $"文件读取错误（{ex.Message}），已切换到网页预览。";
+            }
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            // 权限不足
+            State = LoadState.Error;
+            Error = $"访问权限不足: {ex.Message}";
+            if (CanUseWeb)
+            {
+                UseWeb = true;
+                StructuredNotice = $"访问权限不足（{ex.Message}），已切换到网页预览。";
+            }
+        }
+        catch (InvalidDataException ex)
+        {
+            // 文档格式错误或损坏
             State = LoadState.Error;
             Error = ex.Message;
+            if (CanUseWeb)
+            {
+                UseWeb = true;
+                StructuredNotice = $"文档格式问题（{ex.Message}），已切换到网页预览。";
+            }
+        }
+        catch (OutOfMemoryException)
+        {
+            // 内存不足
+            State = LoadState.Error;
+            Error = "文档过大，内存不足";
+            StructuredNotice = "文档过大，结构化解析失败。建议使用网页预览或十六进制查看。";
+        }
+        catch (Exception ex)
+        {
+            // 其他未知异常
+            State = LoadState.Error;
+            Error = $"解析失败: {ex.Message}";
             if (CanUseWeb)
             {
                 UseWeb = true;
@@ -162,3 +205,4 @@ public sealed partial class OfficeContentViewModel : ObservableObject, IDisposab
         Structured = null;
     }
 }
+
