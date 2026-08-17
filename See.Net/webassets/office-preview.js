@@ -1,7 +1,10 @@
-// Office 网页预览：从 ?kind= 参数取得文档类型，fetch("/data") 拉取文件字节流
-// （由宿主 WebView2 的 WebResourceRequested 拦截回流），交给对应渲染库输出。
+// Office 网页预览：从 ?kind= 参数取得文档类型，经独立未映射域拉取文件字节流
+// （宿主 WebResourceRequested 拦截回流），交给对应渲染库输出。
 (function () {
   "use strict";
+
+  // 与 OfficeWebHost.DataHost 一致；不可使用映射域上的相对 /data（WebResourceRequested 不触发）
+  var DATA_URL = "https://see-office-data.local/data";
 
   var params = new URLSearchParams(location.search);
   var kind = params.get("kind") || "";
@@ -35,7 +38,7 @@
   }
 
   function fetchBytes() {
-    return fetch("data", { cache: "no-store" }).then(function (res) {
+    return fetch(DATA_URL, { cache: "no-store" }).then(function (res) {
       if (!res.ok) throw new Error("拉取文件失败（HTTP " + res.status + "）");
       return res.arrayBuffer();
     });
@@ -72,7 +75,7 @@
 
   function renderPptx() {
     // PPTXjs 1.21.1 入口是 pptxToHtml()，通过 JSZipUtils.getBinaryContent(pptxFileUrl)
-    // 以 XHR 拉取二进制 —— 让它拉 "data" 虚拟路径（宿主 WebResourceRequested 拦截回流）。
+    // 以 XHR 拉取二进制 —— 指向未映射数据域。
     container.innerHTML = "";
     var holder = document.createElement("div");
     holder.className = "pptx";
@@ -80,7 +83,7 @@
     showContainer("pptx");
 
     var promise = jQuery(holder).pptxToHtml({
-      pptxFileUrl: "data",
+      pptxFileUrl: DATA_URL,
       slidesScale: 0.7,
       slideMode: false,
       keyBoardShortCut: false
@@ -101,7 +104,7 @@
 
   setStatus("正在解析文档…", false);
   var work = kind === "pptx"
-    ? renderPptx()                 // pptx 由 JSZipUtils 自行拉取 "data"
+    ? renderPptx()                 // pptx 由 JSZipUtils 自行拉取数据域
     : fetchBytes().then(renderer);
   work.catch(function (err) { reportError(err && err.message ? err.message : err); });
 })();

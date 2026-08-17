@@ -5,14 +5,18 @@ using See.ViewModels;
 namespace See.Views;
 
 /// <summary>
-/// Office 网页渲染宿主：WebView2 虚拟主机映射 webassets 目录，
-/// 文件字节经 WebResourceRequested 拦截以流式回吐（大文件不经 base64 消息）。
-/// 环境创建与生命周期由 WebViewHostBase 承担。
+/// Office 网页渲染宿主：
+/// - AssetsHost（映射 webassets）：office-preview 页与 mammoth / SheetJS / PPTXjs 等离线库
+/// - see-office-data.local（未映射）：文档字节经 WebResourceRequested 回吐
+/// 映射域上不触发 WebResourceRequested，故 /data 绝不能挂在 AssetsHost。
 /// </summary>
 public partial class OfficeWebHost : WebViewHostBase
 {
-    /// <summary>虚拟主机域名（映射到打包内 webassets 目录，等价于基类 AssetsHost）。</summary>
+    /// <summary>静态资源虚拟主机（映射 webassets）。</summary>
     public const string VirtualHost = AssetsHost;
+
+    /// <summary>文档字节专用域（不映射，保证可拦截）。</summary>
+    public const string DataHost = "see-office-data.local";
 
     private string? _dataPath;
 
@@ -27,27 +31,19 @@ public partial class OfficeWebHost : WebViewHostBase
         try
         {
             if (string.IsNullOrEmpty(path))
-            {
                 throw new ArgumentException("文件路径不能为空", nameof(path));
-            }
-            
+
             if (!File.Exists(path))
-            {
                 throw new FileNotFoundException($"文件不存在: {path}", path);
-            }
 
             _dataPath = path;
-            NavigateOrPending($"https://{VirtualHost}/office-preview.html?kind={kind}");
-            return Task.CompletedTask; // WebView 初始化完成后由基类流程导航
+            NavigateOrPending($"https://{VirtualHost}/office-preview.html?kind={Uri.EscapeDataString(kind)}");
+            return Task.CompletedTask;
         }
         catch (Exception ex)
         {
-            // 记录加载错误
             System.Diagnostics.Debug.WriteLine($"Failed to start WebView loading: {ex.Message}");
-            
-            // 尝试报告错误到VM
             ReportErrorToVM($"加载失败: {ex.Message}");
-            
             return Task.FromException(ex);
         }
     }
@@ -57,16 +53,35 @@ public partial class OfficeWebHost : WebViewHostBase
         MapAssets(core);
 
         core.WebResourceRequested += OnWebResourceRequested;
-        core.AddWebResourceRequestedFilter($"https://{VirtualHost}/data", CoreWebView2WebResourceContext.Other);
+        core.AddWebResourceRequestedFilter($"https://{DataHost}/*", CoreWebView2WebResourceContext.All);
         core.WebMessageReceived += OnWebMessageReceived;
     }
 
-    /// <summary>拦截 data 请求，以 FileStream 流式回吐文件字节。</summary>
     private void OnWebResourceRequested(object? sender, CoreWebView2WebResourceRequestedEventArgs e)
     {
-        if (_dataPath is null || !e.Request.Uri.EndsWith("/data", StringComparison.Ordinal))
+        if (!Uri.TryCreate(e.Request.Uri, UriKind.Absolute, out var uri)
+            || !uri.Host.Equals(DataHost, StringComparison.OrdinalIgnoreCase))
         {
-            e.Response = SharedEnvironment.CreateWebResourceResponse(null, 404, "Not Found", "");
+            return;
+        }
+
+        // 跨域 fetch / XHR 预检
+        if (string.Equals(e.Request.Method, "OPTIONS", StringComparison.OrdinalIgnoreCase))
+        {
+            e.Response = SharedEnvironment.CreateWebResourceResponse(
+                null, 204, "No Content", CorsHeaders());
+            return;
+        }
+
+        if (!uri.AbsolutePath.Equals("/data", StringComparison.OrdinalIgnoreCase))
+        {
+            e.Response = SharedEnvironment.CreateWebResourceResponse(null, 404, "Not Found", CorsHeaders());
+            return;
+        }
+
+        if (_dataPath is null)
+        {
+            e.Response = SharedEnvironment.CreateWebResourceResponse(null, 404, "Not Found", CorsHeaders());
             return;
         }
 
@@ -74,37 +89,45 @@ public partial class OfficeWebHost : WebViewHostBase
         {
             var stream = new FileStream(_dataPath, FileMode.Open, FileAccess.Read,
                 FileShare.ReadWrite | FileShare.Delete);
+            long length = stream.Length;
             e.Response = SharedEnvironment.CreateWebResourceResponse(
-                stream, 200, "OK", "Content-Type: application/octet-stream");
+                stream, 200, "OK",
+                CorsHeaders() +
+                $"\nContent-Type: application/octet-stream\nContent-Length: {length}\nAccept-Ranges: bytes");
         }
         catch (FileNotFoundException ex)
         {
-            e.Response = SharedEnvironment.CreateWebResourceResponse(null, 404, "File Not Found", "");
+            e.Response = SharedEnvironment.CreateWebResourceResponse(null, 404, "File Not Found", CorsHeaders());
             ReportErrorToVM($"文件不存在: {ex.Message}");
         }
         catch (DirectoryNotFoundException ex)
         {
-            e.Response = SharedEnvironment.CreateWebResourceResponse(null, 404, "Directory Not Found", "");
+            e.Response = SharedEnvironment.CreateWebResourceResponse(null, 404, "Directory Not Found", CorsHeaders());
             ReportErrorToVM($"目录不存在: {ex.Message}");
         }
         catch (UnauthorizedAccessException ex)
         {
-            e.Response = SharedEnvironment.CreateWebResourceResponse(null, 403, "Forbidden", "");
+            e.Response = SharedEnvironment.CreateWebResourceResponse(null, 403, "Forbidden", CorsHeaders());
             ReportErrorToVM($"访问权限不足: {ex.Message}");
         }
         catch (IOException ex)
         {
-            e.Response = SharedEnvironment.CreateWebResourceResponse(null, 500, "IO Error", "");
+            e.Response = SharedEnvironment.CreateWebResourceResponse(null, 500, "IO Error", CorsHeaders());
             ReportErrorToVM($"文件读取错误: {ex.Message}");
         }
         catch (Exception ex)
         {
-            e.Response = SharedEnvironment.CreateWebResourceResponse(null, 500, "Internal Server Error", "");
+            e.Response = SharedEnvironment.CreateWebResourceResponse(null, 500, "Internal Server Error", CorsHeaders());
             ReportErrorToVM($"服务器错误: {ex.Message}");
         }
     }
 
-    /// <summary>接收渲染页 postMessage 的错误上报。</summary>
+    /// <summary>页面在 AssetsHost，数据在 DataHost，需显式放开 CORS。</summary>
+    private static string CorsHeaders() =>
+        $"Access-Control-Allow-Origin: https://{VirtualHost}\n" +
+        "Access-Control-Allow-Methods: GET, HEAD, OPTIONS\n" +
+        "Access-Control-Allow-Headers: *";
+
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
         var vm = DataContext as OfficeContentViewModel;
@@ -121,19 +144,15 @@ public partial class OfficeWebHost : WebViewHostBase
         }
     }
 
-    /// <summary>报告错误到 ViewModel。</summary>
     private void ReportErrorToVM(string errorMessage)
     {
         var vm = DataContext as OfficeContentViewModel;
         if (vm is not null)
-        {
             Dispatcher.Invoke(() => vm.WebError = errorMessage);
-        }
     }
 
     private static string ExtractMessage(string json)
     {
-        // 简易提取 "message":"..." 字段，避免引入 JSON 依赖
         int idx = json.IndexOf("\"message\":\"", StringComparison.Ordinal);
         if (idx < 0) return json;
         int start = idx + 11;

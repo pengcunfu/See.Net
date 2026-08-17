@@ -137,7 +137,7 @@
                 </StackPanel>
                 <DataGrid x:Name="SheetGrid" Grid.Row="1" IsReadOnly="True" AutoGenerateColumns="False"
                           HeadersVisibility="Column" GridLinesVisibility="All" CanUserAddRows="False"
-                          SelectionMode="Cell" SelectionUnit="Cell"
+                          SelectionMode="Extended" SelectionUnit="Cell"
                           FontSize="12" RowHeight="24" EnableRowVirtualization="True" EnableColumnVirtualization="True"/>
             </Grid>
 
