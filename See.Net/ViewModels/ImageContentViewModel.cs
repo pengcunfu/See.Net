@@ -1,4 +1,4 @@
-﻿using System.Windows.Media;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using See.Net.Core;
@@ -60,14 +60,19 @@ public sealed partial class ImageContentViewModel : ObservableObject
 
     public void ZoomIn()
     {
-        Zoom = Math.Min(16, Math.Round(Zoom * 1.25, 3));
-        if (IsFit) IsFit = false;
+        SetZoom(Math.Min(16, Math.Round(Zoom * 1.25, 3)));
     }
 
     public void ZoomOut()
     {
-        Zoom = Math.Max(0.05, Math.Round(Zoom / 1.25, 3));
-        if (IsFit) IsFit = false;
+        SetZoom(Math.Max(0.05, Math.Round(Zoom / 1.25, 3)));
+    }
+
+    /// <summary>设置绝对缩放比并退出适应窗口模式。</summary>
+    public void SetZoom(double zoom)
+    {
+        Zoom = Math.Clamp(zoom, 0.05, 16);
+        IsFit = false;
     }
 
     public void FitToWindow() => IsFit = true;

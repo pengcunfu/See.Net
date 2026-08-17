@@ -1,20 +1,20 @@
-﻿using System.Drawing;
+using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 
 namespace See.Services;
 
-/// <summary>系统托盘图标：重新打开主窗口、打开设置、退出应用。</summary>
+/// <summary>系统托盘图标：打开文件预览、设置、退出应用。</summary>
 public sealed class TrayIconService : IDisposable
 {
     private readonly NotifyIcon _icon;
-    private readonly Action _showMain;
+    private readonly Action _openFile;
     private readonly Action _showSettings;
     private readonly Action _exit;
 
-    public TrayIconService(Action showMain, Action showSettings, Action exit)
+    public TrayIconService(Action openFile, Action showSettings, Action exit)
     {
-        _showMain = showMain;
+        _openFile = openFile;
         _showSettings = showSettings;
         _exit = exit;
         _icon = new NotifyIcon
@@ -36,12 +36,12 @@ public sealed class TrayIconService : IDisposable
         _icon.Icon ??= SystemIcons.Application;
 
         var menu = new ContextMenuStrip();
-        menu.Items.Add("打开 See.Net", null, (_, _) => _showMain());
+        menu.Items.Add("打开文件预览…", null, (_, _) => _openFile());
         menu.Items.Add("设置", null, (_, _) => _showSettings());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("退出", null, (_, _) => _exit());
         _icon.ContextMenuStrip = menu;
-        _icon.DoubleClick += (_, _) => _showMain();
+        _icon.DoubleClick += (_, _) => _openFile();
     }
 
     public void ShowBalloon(string title, string text)

@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Threading;
@@ -9,8 +9,8 @@ using See.Views;
 namespace See.Services;
 
 /// <summary>
-/// 资源管理器空格预览：全局键盘钩子捕获空格，
-/// 判断前台为 Explorer 且焦点不在输入控件后，读取选中文件并弹出 Quick Look 式浮窗。
+/// 空格预览：全局键盘钩子捕获空格；前台为资源管理器且焦点不在输入框时，
+/// 读取选中文件并弹出 Quick Look 式浮窗。也可由命令行 / 托盘直接打开文件预览。
 /// </summary>
 public sealed class ShellPreviewService : IDisposable
 {
@@ -64,19 +64,27 @@ public sealed class ShellPreviewService : IDisposable
 
         // 消费按键，在 UI 线程执行 Shell COM 枚举与弹窗
         IntPtr captured = foreground;
-        _dispatcher.BeginInvoke(() => ShowPreview(captured));
+        _dispatcher.BeginInvoke(() => ShowPreviewFromExplorer(captured));
         return true;
     }
 
-    private void ShowPreview(IntPtr foreground)
+    private void ShowPreviewFromExplorer(IntPtr foreground)
     {
         if (_disposed) return;
 
         var paths = _selection.GetSelectedFiles(foreground);
+        ShowPreviewForPaths(paths);
+    }
+
+    /// <summary>按路径列表打开预览浮窗（托盘「打开文件」、命令行参数、单例转发）。</summary>
+    public void ShowPreviewForPaths(IEnumerable<string> paths)
+    {
+        if (_disposed) return;
+
         var files = new List<FileEntry>();
         foreach (string path in paths)
         {
-            if (!File.Exists(path)) continue;
+            if (string.IsNullOrWhiteSpace(path) || !File.Exists(path)) continue;
             var fi = new FileInfo(path);
             files.Add(new FileEntry
             {
@@ -91,7 +99,6 @@ public sealed class ShellPreviewService : IDisposable
 
         _viewModel ??= new ShellPreviewViewModel(_settings, _backup);
         _window ??= new ShellPreviewWindow { DataContext = _viewModel };
-        if (_window.IsVisible) return;
 
         _viewModel.LoadFiles(files);
         _window.Show();

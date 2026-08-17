@@ -1,4 +1,3 @@
-﻿using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using See.Net.Core;
@@ -6,7 +5,7 @@ using See.Services;
 
 namespace See.ViewModels;
 
-/// <summary>资源管理器空格预览浮窗的视图模型（多选文件时支持 ↑/↓ 切换）。</summary>
+/// <summary>空格预览浮窗的视图模型（多选文件时支持 ↑/↓ 切换）。</summary>
 public sealed partial class ShellPreviewViewModel : ObservableObject
 {
     private readonly PreviewViewModel _preview;
@@ -49,22 +48,6 @@ public sealed partial class ShellPreviewViewModel : ObservableObject
         if (_files.Count == 0) return;
         _index = (_index + 1) % _files.Count;
         _ = ShowCurrentAsync();
-    }
-
-    [RelayCommand]
-    private void OpenInSeeNet()
-    {
-        if (_files.Count == 0) return;
-        try
-        {
-            string exe = Environment.ProcessPath ?? "See.Net.exe";
-            Process.Start(new ProcessStartInfo(exe)
-            {
-                Arguments = $"\"{_files[_index].FullPath}\"",
-                UseShellExecute = true,
-            });
-        }
-        catch { /* 打开失败时忽略 */ }
     }
 
     private async Task ShowCurrentAsync()
