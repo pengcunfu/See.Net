@@ -29,7 +29,6 @@
     container.className = cls;
   }
 
-  // 渲染失败上报宿主，宿主降级回结构化视图。
   function reportError(message) {
     try {
       window.chrome.webview.postMessage({ type: "error", kind: kind, message: String(message) });
@@ -47,7 +46,6 @@
   function renderDocx(buf) {
     return mammoth.convertToHtml({ arrayBuffer: buf }).then(function (result) {
       container.innerHTML = result.value;
-      // mammoth 的警告（如丢失图片）仅控制台提示，不中断
       if (result.messages && result.messages.length) {
         console.warn("mammoth warnings:", result.messages);
       }
@@ -73,26 +71,81 @@
     return Promise.resolve();
   }
 
-  function renderPptx() {
-    // PPTXjs 1.21.1 入口是 pptxToHtml()，通过 JSZipUtils.getBinaryContent(pptxFileUrl)
-    // 以 XHR 拉取二进制 —— 指向未映射数据域。
+  function renderPptx(buf) {
+    if (typeof FileReaderJS === "undefined") {
+      return Promise.reject(new Error("缺少 filereader.js（FileReaderJS），无法渲染 PPTX。"));
+    }
+    if (typeof jQuery === "undefined" || typeof jQuery.fn.pptxToHtml !== "function") {
+      return Promise.reject(new Error("PPTXjs 未正确加载。"));
+    }
+
+    // 同源 blob URL，避免跨域 XHR；PPTXjs 内部仍走 JSZipUtils.getBinaryContent
+    var blob = new Blob([buf], {
+      type: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    });
+    var url = URL.createObjectURL(blob);
+
     container.innerHTML = "";
     var holder = document.createElement("div");
+    holder.id = "pptx-host-" + Date.now();
     holder.className = "pptx";
     container.appendChild(holder);
-    showContainer("pptx");
 
-    var promise = jQuery(holder).pptxToHtml({
-      pptxFileUrl: DATA_URL,
-      slidesScale: 0.7,
-      slideMode: false,
-      keyBoardShortCut: false
-    });
-    // pptxToHtml 返回 jQuery 对象而非 Promise；成功与否以容器是否产出幻灯片判断
-    return Promise.resolve(promise).then(function () {
-      if (!holder.querySelector(".slide") && !holder.innerHTML.trim()) {
-        throw new Error("PPTX 未能渲染出任何幻灯片");
+    setStatus("正在渲染幻灯片…", false);
+
+    return new Promise(function (resolve, reject) {
+      var settled = false;
+      var timer = setTimeout(function () {
+        if (settled) return;
+        settled = true;
+        URL.revokeObjectURL(url);
+        reject(new Error("PPTX 渲染超时，请改用结构化预览。"));
+      }, 90000);
+
+      try {
+        jQuery(holder).pptxToHtml({
+          pptxFileUrl: url,
+          slidesScale: 0.7,
+          slideMode: false,
+          keyBoardShortCut: false,
+          mediaProcess: false,
+        });
+      } catch (err) {
+        clearTimeout(timer);
+        URL.revokeObjectURL(url);
+        settled = true;
+        reject(err);
+        return;
       }
+
+      // pptxToHtml 异步写 DOM；轮询检测幻灯片或错误提示
+      var tries = 0;
+      var poll = setInterval(function () {
+        tries++;
+        var slides = holder.querySelectorAll(".slide");
+        var loading = holder.querySelector(".slides-loadnig-msg, .slides-loading-msg");
+        if (slides.length > 0) {
+          clearInterval(poll);
+          clearTimeout(timer);
+          if (!settled) {
+            settled = true;
+            URL.revokeObjectURL(url);
+            showContainer("pptx");
+            resolve();
+          }
+          return;
+        }
+        // 长时间仍无 slide 且 loading 已消失 → 失败
+        if (tries > 40 && (!loading || loading.style.display === "none") && !holder.innerHTML.trim()) {
+          clearInterval(poll);
+          clearTimeout(timer);
+          if (!settled) {
+            settled = true;
+            URL.revokeObjectURL(url);
+            reject(new Error("PPTX 未能渲染出任何幻灯片"));
+          }
+        }
+      }, 250);
     });
   }
 
@@ -103,8 +156,7 @@
   }
 
   setStatus("正在解析文档…", false);
-  var work = kind === "pptx"
-    ? renderPptx()                 // pptx 由 JSZipUtils 自行拉取数据域
-    : fetchBytes().then(renderer);
-  work.catch(function (err) { reportError(err && err.message ? err.message : err); });
+  fetchBytes()
+    .then(renderer)
+    .catch(function (err) { reportError(err && err.message ? err.message : err); });
 })();

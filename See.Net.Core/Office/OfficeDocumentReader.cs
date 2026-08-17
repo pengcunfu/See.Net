@@ -20,6 +20,15 @@ public static class OfficeDocumentReader
     /// <summary>共享字符串表最大预读条数，防止超大工作簿吞内存。</summary>
     public const int MaxSharedStrings = 100_000;
 
+    /// <summary>单页最多抽取的内嵌图片数。</summary>
+    public const int MaxImagesPerSlide = 6;
+
+    /// <summary>单张内嵌图片原始字节上限，超出跳过。</summary>
+    public const int MaxImageBytes = 4 * 1024 * 1024;
+
+    /// <summary>整份演示文稿图片字节总预算，超出后不再抽图（文字仍保留）。</summary>
+    public const long MaxTotalSlideImageBytes = 48L * 1024 * 1024;
+
     /// <summary>能否用结构化（XML 解析）引擎读取该扩展名。二进制旧格式由网页引擎（SheetJS）兜底。</summary>
     public static bool CanReadStructured(string extension) => GetParserKind(extension) is not null;
 

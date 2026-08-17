@@ -48,6 +48,11 @@ public abstract class WebViewHostBase : System.Windows.Controls.UserControl, IDi
     {
     }
 
+    /// <summary>子类钩子：WebView2 进程异常退出后的业务侧处理（切回结构化等）。</summary>
+    protected virtual void OnEngineCrashed(string message)
+    {
+    }
+
     /// <summary>把 webassets 目录映射到虚拟主机 AssetsHost，供页面引用离线资源。</summary>
     protected static void MapAssets(CoreWebView2 core)
     {
@@ -92,6 +97,7 @@ public abstract class WebViewHostBase : System.Windows.Controls.UserControl, IDi
             await _webView.EnsureCoreWebView2Async(environment);
 
             var core = _webView.CoreWebView2;
+            core.ProcessFailed += OnProcessFailed;
             Configure(core);
 
             if (_pendingNavigate is not null)
@@ -102,26 +108,71 @@ public abstract class WebViewHostBase : System.Windows.Controls.UserControl, IDi
         }
         catch (Exception ex)
         {
-            Content = new System.Windows.Controls.TextBlock
-            {
-                Text = $"WebView2 初始化失败：{ex.Message}",
-                TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(24),
-                Foreground = System.Windows.Media.Brushes.Gray,
-            };
+            ShowFailure($"WebView2 初始化失败：{ex.Message}");
         }
+    }
+
+    /// <summary>渲染 / 浏览器进程崩溃时尽量保住宿主，并允许重建环境。</summary>
+    private void OnProcessFailed(object? sender, CoreWebView2ProcessFailedEventArgs e)
+    {
+        Dispatcher.BeginInvoke(() =>
+        {
+            try
+            {
+                // 浏览器进程退出后共享 Environment 失效，必须丢弃以便下次重建
+                if (e.ProcessFailedKind is CoreWebView2ProcessFailedKind.BrowserProcessExited)
+                {
+                    _environment = null;
+                }
+
+                string message =
+                    $"预览引擎异常退出（{e.ProcessFailedKind}）。已切回安全模式，请使用结构化预览或关闭后重试。";
+
+                SafeTearDownWebView();
+                ShowFailure(message);
+                OnEngineCrashed(message);
+            }
+            catch
+            {
+                // 崩溃收尾绝不能再抛出，否则会拖垮整个 WPF 进程
+            }
+        });
+    }
+
+    private void SafeTearDownWebView()
+    {
+        var view = _webView;
+        _webView = null;
+        if (view is null) return;
+        try
+        {
+            if (view.CoreWebView2 is not null)
+            {
+                view.CoreWebView2.ProcessFailed -= OnProcessFailed;
+                OnDetach(view.CoreWebView2);
+            }
+        }
+        catch { /* 进程已死后解绑可能失败 */ }
+
+        try { view.Dispose(); }
+        catch { /* ignore */ }
+    }
+
+    private void ShowFailure(string message)
+    {
+        Content = new System.Windows.Controls.TextBlock
+        {
+            Text = message,
+            TextWrapping = TextWrapping.Wrap,
+            Margin = new Thickness(24),
+            Foreground = System.Windows.Media.Brushes.DarkRed,
+        };
     }
 
     private void OnUnloaded(object sender, RoutedEventArgs e) => Dispose();
 
     public virtual void Dispose()
     {
-        if (_webView is not null)
-        {
-            if (_webView.CoreWebView2 is not null)
-                OnDetach(_webView.CoreWebView2);
-            _webView.Dispose();
-            _webView = null;
-        }
+        SafeTearDownWebView();
     }
 }

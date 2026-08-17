@@ -145,7 +145,8 @@ public sealed class OfficeDocumentReaderTests : IDisposable
         {
             var presPart = doc.AddPresentationPart();
             presPart.Presentation = new P.Presentation(
-                new P.SlideIdList(new P.SlideId { Id = 256 }), new P.SlideSize { Cx = 9144000, Cy = 5143500 });
+                new P.SlideIdList(new P.SlideId { Id = 256, RelationshipId = "rId1" }),
+                new P.SlideSize { Cx = 9144000, Cy = 5143500 });
             var slide1 = presPart.AddNewPart<SlidePart>("rId1");
             slide1.Slide = new P.Slide(new P.CommonSlideData(new P.ShapeTree(
                 new P.Shape(
@@ -166,6 +167,119 @@ public sealed class OfficeDocumentReaderTests : IDisposable
         var slide = Assert.Single(model.Slides);
         Assert.Equal(1, slide.Index);
         Assert.Equal("第一页标题", slide.Title);
+        Assert.Equal(9144000, model.SlideWidthEmu);
+        Assert.Equal(5143500, model.SlideHeightEmu);
+    }
+
+    [Fact]
+    public void ReadSlides_Extracts_Embedded_Png_In_SlideId_Order()
+    {
+        string path = Temp(".pptx");
+        byte[] png = MinimalPng();
+
+        using (var doc = PresentationDocument.Create(path, PresentationDocumentType.Presentation))
+        {
+            var presPart = doc.AddPresentationPart();
+            // 先创建 rId1(页B)、再 rId2(页A)；SlideIdList 指定显示顺序为 A→B
+            var slideB = presPart.AddNewPart<SlidePart>("rId1");
+            var slideA = presPart.AddNewPart<SlidePart>("rId2");
+            slideA.Slide = BuildSlideWithTitle("页A");
+            slideB.Slide = BuildSlideWithTitle("页B");
+            AddPictureWithPng(slideA, png);
+            AddPictureWithPng(slideB, png);
+
+            presPart.Presentation = new P.Presentation(
+                new P.SlideIdList(
+                    new P.SlideId { Id = 256, RelationshipId = "rId2" },
+                    new P.SlideId { Id = 257, RelationshipId = "rId1" }),
+                new P.SlideSize { Cx = 9144000, Cy = 5143500 });
+            presPart.Presentation.Save();
+        }
+
+        var model = (SlidesModel)OfficeDocumentReader.Read(path);
+        Assert.Equal(2, model.Slides.Count);
+        Assert.Equal("页A", model.Slides[0].Title);
+        Assert.Equal("页B", model.Slides[1].Title);
+        Assert.Single(model.Slides[0].Images);
+        Assert.Equal("image/png", model.Slides[0].Images[0].ContentType);
+        Assert.True(model.Slides[0].Images[0].Bytes.Length > 0);
+        Assert.Single(model.Slides[1].Images);
+        Assert.False(model.ImagesTruncated);
+    }
+
+    [Fact]
+    public void ReadSlides_Skips_Oversized_Image()
+    {
+        string path = Temp(".pptx");
+        var huge = new byte[OfficeDocumentReader.MaxImageBytes + 1024];
+
+        using (var doc = PresentationDocument.Create(path, PresentationDocumentType.Presentation))
+        {
+            var presPart = doc.AddPresentationPart();
+            var slide = presPart.AddNewPart<SlidePart>("rId1");
+            slide.Slide = BuildSlideWithTitle("大图页");
+            AddPictureWithBytes(slide, huge, ImagePartType.Png);
+            presPart.Presentation = new P.Presentation(
+                new P.SlideIdList(new P.SlideId { Id = 256, RelationshipId = "rId1" }),
+                new P.SlideSize { Cx = 9144000, Cy = 5143500 });
+            presPart.Presentation.Save();
+        }
+
+        var model = (SlidesModel)OfficeDocumentReader.Read(path);
+        var s = Assert.Single(model.Slides);
+        Assert.Empty(s.Images);
+        Assert.True(model.ImagesTruncated);
+    }
+
+    private static byte[] MinimalPng() =>
+        Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==");
+
+    private static P.Slide BuildSlideWithTitle(string title) =>
+        new(new P.CommonSlideData(new P.ShapeTree(
+            new P.NonVisualGroupShapeProperties(
+                new P.NonVisualDrawingProperties { Id = 1U, Name = "" },
+                new P.NonVisualGroupShapeDrawingProperties(),
+                new P.ApplicationNonVisualDrawingProperties()),
+            new P.GroupShapeProperties(new D.TransformGroup()),
+            new P.Shape(
+                new P.NonVisualShapeProperties(
+                    new D.NonVisualDrawingProperties { Id = 2U, Name = "Title" },
+                    new P.NonVisualShapeDrawingProperties(),
+                    new P.ApplicationNonVisualDrawingProperties(
+                        new P.PlaceholderShape { Type = P.PlaceholderValues.Title })),
+                new P.ShapeProperties(),
+                new P.TextBody(
+                    new D.BodyProperties(),
+                    new D.ListStyle(),
+                    new D.Paragraph(new D.Run(new D.Text(title))))))));
+
+    private static void AddPictureWithPng(SlidePart slide, byte[] png)
+        => AddPictureWithBytes(slide, png, ImagePartType.Png);
+
+    private static void AddPictureWithBytes(SlidePart slide, byte[] bytes, PartTypeInfo type)
+    {
+        var imagePart = slide.AddImagePart(type);
+        using (var s = imagePart.GetStream())
+            s.Write(bytes, 0, bytes.Length);
+        string relId = slide.GetIdOfPart(imagePart);
+
+        var tree = slide.Slide?.CommonSlideData?.ShapeTree
+            ?? throw new InvalidOperationException("missing shape tree");
+        tree.AppendChild(new P.Picture(
+            new P.NonVisualPictureProperties(
+                new P.NonVisualDrawingProperties { Id = 10U, Name = "Picture" },
+                new P.NonVisualPictureDrawingProperties(),
+                new P.ApplicationNonVisualDrawingProperties()),
+            new P.BlipFill(
+                new D.Blip { Embed = relId },
+                new D.Stretch(new D.FillRectangle())),
+            new P.ShapeProperties(
+                new D.Transform2D(
+                    new D.Offset { X = 0, Y = 0 },
+                    new D.Extents { Cx = 914400, Cy = 914400 }),
+                new D.PresetGeometry(new D.AdjustValueList()) { Preset = D.ShapeTypeValues.Rectangle })));
+        slide.Slide!.Save();
     }
 
     // ---------- RTF ----------

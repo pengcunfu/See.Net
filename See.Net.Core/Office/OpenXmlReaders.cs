@@ -277,19 +277,32 @@ internal static class OpenXmlReaders
         {
             throw new InvalidDataException($"读取PowerPoint文档失败: {ex.Message}", ex);
         }
-        
+
         // 重新打开文档进行处理
         using var fs = OfficeDocumentReader.OpenShared(path);
         using var doc = PresentationDocument.Open(fs, false);
         var pres = doc.PresentationPart ?? throw new InvalidDataException("演示文稿结构无效");
 
-        var slides = new List<SlideData>();
+        long widthEmu = 0, heightEmu = 0;
+        if (pres.Presentation?.SlideSize is { } sldSz)
+        {
+            widthEmu = sldSz.Cx?.Value ?? 0;
+            heightEmu = sldSz.Cy?.Value ?? 0;
+        }
+
+        var slideParts = EnumerateSlidePartsInOrder(pres).ToList();
+        var slides = new List<SlideData>(slideParts.Count);
+        long totalImageBytes = 0;
+        bool imagesTruncated = false;
         int index = 1;
-        foreach (var slidePart in pres.SlideParts)
+
+        foreach (var slidePart in slideParts)
         {
             var tree = slidePart.Slide?.CommonSlideData?.ShapeTree;
             var title = "";
             var lines = new List<string>();
+            var images = new List<SlideImageData>();
+
             if (tree is not null)
             {
                 foreach (var shape in tree.Descendants<P.Shape>())
@@ -317,11 +330,162 @@ internal static class OpenXmlReaders
                         lines.AddRange(paragraphs);
                     }
                 }
+
+                if (totalImageBytes < OfficeDocumentReader.MaxTotalSlideImageBytes)
+                {
+                    foreach (var picture in tree.Descendants<P.Picture>())
+                    {
+                        if (images.Count >= OfficeDocumentReader.MaxImagesPerSlide)
+                        {
+                            imagesTruncated = true;
+                            break;
+                        }
+
+                        if (TryReadPicture(slidePart, picture, out var image, out bool skippedByBudget))
+                        {
+                            long next = totalImageBytes + image.Bytes.Length;
+                            if (next > OfficeDocumentReader.MaxTotalSlideImageBytes)
+                            {
+                                imagesTruncated = true;
+                                break;
+                            }
+                            images.Add(image);
+                            totalImageBytes = next;
+                        }
+                        else if (skippedByBudget)
+                        {
+                            imagesTruncated = true;
+                        }
+                    }
+                }
+                else
+                {
+                    // 总预算已满：若本页仍有图片则标记截断
+                    if (tree.Descendants<P.Picture>().Any())
+                        imagesTruncated = true;
+                }
             }
-            slides.Add(new SlideData { Index = index, Title = title, Lines = lines });
+
+            slides.Add(new SlideData
+            {
+                Index = index,
+                Title = title,
+                Lines = lines,
+                Images = images,
+            });
             index++;
         }
-        return new SlidesModel { Slides = slides };
+
+        return new SlidesModel
+        {
+            Slides = slides,
+            SlideWidthEmu = widthEmu,
+            SlideHeightEmu = heightEmu,
+            ImagesTruncated = imagesTruncated,
+        };
+    }
+
+    /// <summary>按 SlideIdList 顺序枚举幻灯片；列表缺失或关系无效时回退 SlideParts。</summary>
+    private static IEnumerable<SlidePart> EnumerateSlidePartsInOrder(PresentationPart pres)
+    {
+        var idList = pres.Presentation?.SlideIdList;
+        if (idList is not null)
+        {
+            var ordered = new List<SlidePart>();
+            foreach (var slideId in idList.Elements<SlideId>())
+            {
+                var relId = slideId.RelationshipId?.Value;
+                if (string.IsNullOrEmpty(relId)) continue;
+                try
+                {
+                    if (pres.GetPartById(relId) is SlidePart part)
+                        ordered.Add(part);
+                }
+                catch
+                {
+                    // 损坏关系跳过
+                }
+            }
+
+            if (ordered.Count > 0)
+            {
+                foreach (var part in ordered)
+                    yield return part;
+                yield break;
+            }
+        }
+
+        foreach (var part in pres.SlideParts)
+            yield return part;
+    }
+
+    /// <summary>
+    /// 从 p:pic 读取 ImagePart 字节。skippedByBudget=true 表示因单图过大跳过。
+    /// </summary>
+    private static bool TryReadPicture(
+        SlidePart slidePart,
+        P.Picture picture,
+        out SlideImageData image,
+        out bool skippedByBudget)
+    {
+        image = null!;
+        skippedByBudget = false;
+
+        var embed = picture.BlipFill?.Blip?.Embed?.Value;
+        if (string.IsNullOrEmpty(embed)) return false;
+
+        OpenXmlPart? part;
+        try { part = slidePart.GetPartById(embed); }
+        catch { return false; }
+
+        if (part is not ImagePart imagePart) return false;
+
+        string contentType = imagePart.ContentType ?? "";
+        if (IsSkippedImageContentType(contentType)) return false;
+
+        try
+        {
+            using var stream = imagePart.GetStream();
+            long length = stream.CanSeek ? stream.Length : -1;
+            if (length > OfficeDocumentReader.MaxImageBytes)
+            {
+                skippedByBudget = true;
+                return false;
+            }
+
+            using var ms = new MemoryStream(length > 0 && length <= int.MaxValue ? (int)length : 0);
+            stream.CopyTo(ms);
+            if (ms.Length == 0 || ms.Length > OfficeDocumentReader.MaxImageBytes)
+            {
+                if (ms.Length > OfficeDocumentReader.MaxImageBytes)
+                    skippedByBudget = true;
+                return false;
+            }
+
+            image = new SlideImageData
+            {
+                ContentType = string.IsNullOrEmpty(contentType) ? "application/octet-stream" : contentType,
+                Bytes = ms.ToArray(),
+            };
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private static bool IsSkippedImageContentType(string contentType)
+    {
+        if (string.IsNullOrEmpty(contentType)) return false;
+        // WMF/EMF 在 WPF BitmapImage 中通常不可解码
+        return contentType.Contains("x-emf", StringComparison.OrdinalIgnoreCase)
+            || contentType.Contains("x-wmf", StringComparison.OrdinalIgnoreCase)
+            || contentType.Contains("image/x-emf", StringComparison.OrdinalIgnoreCase)
+            || contentType.Contains("image/x-wmf", StringComparison.OrdinalIgnoreCase)
+            || contentType.Equals("image/x-emf", StringComparison.OrdinalIgnoreCase)
+            || contentType.Equals("image/emf", StringComparison.OrdinalIgnoreCase)
+            || contentType.Equals("image/wmf", StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>段落内所有 a:t 文本拼接。</summary>

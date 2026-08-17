@@ -4,12 +4,14 @@ using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Web.WebView2.Core;
 using See.Net.Core.Office;
+using See.Services;
 
 namespace See.ViewModels;
 
 /// <summary>
 /// Office 文档内容视图模型：双引擎状态机。
-/// 结构化引擎在后台线程解析（Core 产出 Word/Sheet/Slides 模型），
+/// 结构化引擎在后台线程解析（Core 产出 Word/Sheet/Slides 模型）；
+/// PPT 在本机有 PowerPoint 时额外导出整页 PNG 做视觉预览；
 /// 网页引擎由视图侧 WebView2 承载，二者经 UseWeb 一键切换。
 /// </summary>
 public sealed partial class OfficeContentViewModel : ObservableObject, IDisposable
@@ -20,21 +22,64 @@ public sealed partial class OfficeContentViewModel : ObservableObject, IDisposab
         ".docx", ".docm", ".xlsx", ".xlsm", ".xls", ".pptx", ".pptm",
     };
 
+    private static readonly HashSet<string> PresentationExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".ppt", ".pptx", ".pptm", ".pps", ".ppsx", ".ppsm",
+    };
+
+    /// <summary>
+    /// PPTX 网页预览体积上限。PPTXjs 需把整文件载入 JS 堆，过大极易拖垮 WebView2 渲染进程。
+    /// </summary>
+    public const long MaxWebPptxBytes = 8L * 1024 * 1024;
+
     private readonly string _path;
     private readonly string _extension;
+    private readonly long _fileLength;
+    private string? _slideCacheDir;
+    private CancellationTokenSource? _loadCts;
 
     public OfficeContentViewModel(string path)
     {
         _path = path;
         _extension = Path.GetExtension(path).ToLowerInvariant();
+        try { _fileLength = new FileInfo(path).Length; }
+        catch { _fileLength = 0; }
+
         IsWebOnly = _extension is ".xls"; // 旧版 Excel 仅 SheetJS 可读
         UseWeb = IsWebOnly;
-        CanUseWeb = WebRenderableExtensions.Contains(_extension) && IsWebViewRuntimeAvailable();
+        CanUseWeb = ComputeCanUseWeb(out var blockReason);
+        WebBlockReason = blockReason;
 
         LoadCommand = new AsyncRelayCommand(LoadAsync);
     }
 
-    /// <summary>本机是否安装 WebView2 运行时（放 VM 层，避免视图层反向依赖）。</summary>
+    private bool ComputeCanUseWeb(out string? blockReason)
+    {
+        blockReason = null;
+        if (!WebRenderableExtensions.Contains(_extension)) return false;
+        if (!IsWebViewRuntimeAvailable())
+        {
+            blockReason = "未检测到 WebView2 运行时。";
+            return false;
+        }
+        if (_extension is ".pptx" or ".pptm" && _fileLength > MaxWebPptxBytes)
+        {
+            blockReason =
+                $"此 PPT 约 {FormatSize(_fileLength)}，超过网页预览上限 {FormatSize(MaxWebPptxBytes)}。" +
+                "请使用结构化预览（本机已装 PowerPoint 时会导出整页画面）。";
+            return false;
+        }
+        return true;
+    }
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024) return $"{bytes} B";
+        double kb = bytes / 1024.0;
+        if (kb < 1024) return $"{kb:0.#} KB";
+        return $"{kb / 1024.0:0.#} MB";
+    }
+
     private static bool IsWebViewRuntimeAvailable()
     {
         try
@@ -44,7 +89,6 @@ public sealed partial class OfficeContentViewModel : ObservableObject, IDisposab
         }
         catch (Exception ex)
         {
-            // WebView2 运行时不可用或初始化失败
             System.Diagnostics.Debug.WriteLine($"WebView2 runtime check failed: {ex.Message}");
             return false;
         }
@@ -52,7 +96,6 @@ public sealed partial class OfficeContentViewModel : ObservableObject, IDisposab
 
     public string FilePath => _path;
 
-    /// <summary>传给网页渲染器的 kind 参数（office-preview.html?kind=…）。</summary>
     public string WebKind => _extension switch
     {
         ".docx" or ".docm" => "docx",
@@ -61,38 +104,34 @@ public sealed partial class OfficeContentViewModel : ObservableObject, IDisposab
         _ => "",
     };
 
-    /// <summary>旧版二进制格式（.xls）没有结构化引擎，网页是唯一视图。</summary>
     public bool IsWebOnly { get; }
-
-    /// <summary>本机是否存在 WebView2 运行时（缺失时网页模式整体降级）。</summary>
     public bool CanUseWeb { get; }
+    public string? WebBlockReason { get; }
 
     public IAsyncRelayCommand LoadCommand { get; }
 
-    /// <summary>结构化解析状态：null=加载中；异常时为 Error。</summary>
     public enum LoadState { Loading, Loaded, Error, Unsupported }
 
     [ObservableProperty]
     private LoadState _state = LoadState.Loading;
 
-    /// <summary>结构化模型：WordBlocksModel / SheetSetModel / SlidesModel 之一。</summary>
     [ObservableProperty]
     private object? _structured;
 
     [ObservableProperty]
     private string? _error;
 
-    /// <summary>结构化视图不可用时给出的提示标题（如“旧版格式仅网页预览支持”）。</summary>
     [ObservableProperty]
     private string? _structuredNotice;
 
-    /// <summary>当前是否处于网页渲染视图。</summary>
     [ObservableProperty]
     private bool _useWeb;
 
-    /// <summary>网页渲染失败信息（由 WebView postMessage 回传），非空时提示并可切回。</summary>
     [ObservableProperty]
     private string? _webError;
+
+    [ObservableProperty]
+    private string _loadingMessage = "正在解析文档…";
 
     partial void OnUseWebChanged(bool value)
     {
@@ -123,24 +162,105 @@ public sealed partial class OfficeContentViewModel : ObservableObject, IDisposab
     private void UseStructuredView() => UseWeb = false;
 
     [RelayCommand]
-    private void UseWebView() => UseWeb = true;
+    private void UseWebView()
+    {
+        if (!CanUseWeb)
+        {
+            WebError = WebBlockReason ?? "当前文件不支持网页预览。";
+            return;
+        }
+        UseWeb = true;
+    }
+
+    public void ReportWebEngineCrash(string detail)
+    {
+        WebError = detail;
+        if (!IsWebOnly) UseWeb = false;
+    }
 
     private async Task LoadAsync()
     {
+        _loadCts?.Cancel();
+        _loadCts?.Dispose();
+        _loadCts = new CancellationTokenSource();
+        var ct = _loadCts.Token;
+
+        State = LoadState.Loading;
+        LoadingMessage = "正在解析文档…";
+        StructuredNotice = null;
+        Error = null;
+
+        bool isPresentation = PresentationExtensions.Contains(_extension);
+
+        // PPT：优先用本机 PowerPoint 导出整页 PNG（真正的画面预览）
+        if (isPresentation && PowerPointSlideExport.IsAvailable())
+        {
+            try
+            {
+                LoadingMessage = "正在用 PowerPoint 渲染幻灯片画面…";
+                AppPaths.EnsureCreated();
+                ClearSlideCache();
+                _slideCacheDir = Path.Combine(AppPaths.PreviewCacheDirectory, Guid.NewGuid().ToString("N"));
+                Directory.CreateDirectory(_slideCacheDir);
+
+                var pngPaths = await PowerPointSlideExport.ExportAsync(_path, _slideCacheDir, ct);
+                ct.ThrowIfCancellationRequested();
+
+                SlidesModel? textModel = null;
+                if (OfficeDocumentReader.CanReadStructured(_extension))
+                {
+                    try
+                    {
+                        LoadingMessage = "正在提取幻灯片文字…";
+                        textModel = await Task.Run(() => (SlidesModel)OfficeDocumentReader.Read(_path), ct);
+                    }
+                    catch
+                    {
+                        // 文字提取失败不影响画面预览
+                    }
+                }
+
+                Structured = MergeRenderedSlides(textModel, pngPaths);
+                State = LoadState.Loaded;
+                return;
+            }
+            catch (OperationCanceledException)
+            {
+                return;
+            }
+            catch (Exception ex)
+            {
+                StructuredNotice = $"PowerPoint 画面导出失败（{ex.Message}），将尝试文字/内嵌图预览。";
+                ClearSlideCache();
+            }
+        }
+        else if (isPresentation && !PowerPointSlideExport.IsAvailable())
+        {
+            StructuredNotice =
+                "未检测到 Microsoft PowerPoint。安装后可导出整页画面预览；当前仅显示文字与内嵌图片。";
+        }
+
         if (!OfficeDocumentReader.CanReadStructured(_extension))
         {
             State = LoadState.Unsupported;
-            StructuredNotice = _extension is ".xls"
+            StructuredNotice ??= _extension is ".xls"
                 ? "旧版 .xls 二进制格式由网页引擎（SheetJS）读取。"
-                : $"旧版 {_extension} 二进制格式暂不支持文本提取，可用网页预览或十六进制查看。";
+                : $"旧版 {_extension} 暂不支持结构化预览。" +
+                  (isPresentation ? "请安装 Microsoft PowerPoint 以启用画面预览。" : "可用网页预览或十六进制查看。");
             return;
         }
 
         try
         {
-            var model = await Task.Run(() => OfficeDocumentReader.Read(_path));
+            LoadingMessage = "正在解析文档…";
+            var model = await Task.Run(() => OfficeDocumentReader.Read(_path), ct);
+            ct.ThrowIfCancellationRequested();
             Structured = model;
             State = LoadState.Loaded;
+        }
+        catch (OperationCanceledException)
+        {
+            // ignore
         }
         catch (NotSupportedException)
         {
@@ -149,7 +269,6 @@ public sealed partial class OfficeContentViewModel : ObservableObject, IDisposab
         }
         catch (IOException ex)
         {
-            // 文件读取错误（文件被占用、权限问题等）
             State = LoadState.Error;
             Error = $"文件读取失败: {ex.Message}";
             if (CanUseWeb)
@@ -160,7 +279,6 @@ public sealed partial class OfficeContentViewModel : ObservableObject, IDisposab
         }
         catch (UnauthorizedAccessException ex)
         {
-            // 权限不足
             State = LoadState.Error;
             Error = $"访问权限不足: {ex.Message}";
             if (CanUseWeb)
@@ -171,7 +289,6 @@ public sealed partial class OfficeContentViewModel : ObservableObject, IDisposab
         }
         catch (InvalidDataException ex)
         {
-            // 文档格式错误或损坏
             State = LoadState.Error;
             Error = ex.Message;
             if (CanUseWeb)
@@ -182,14 +299,12 @@ public sealed partial class OfficeContentViewModel : ObservableObject, IDisposab
         }
         catch (OutOfMemoryException)
         {
-            // 内存不足
             State = LoadState.Error;
             Error = "文档过大，内存不足";
-            StructuredNotice = "文档过大，结构化解析失败。建议使用网页预览或十六进制查看。";
+            StructuredNotice = "文档过大，解析失败。";
         }
         catch (Exception ex)
         {
-            // 其他未知异常
             State = LoadState.Error;
             Error = $"解析失败: {ex.Message}";
             if (CanUseWeb)
@@ -200,9 +315,49 @@ public sealed partial class OfficeContentViewModel : ObservableObject, IDisposab
         }
     }
 
+    private static SlidesModel MergeRenderedSlides(SlidesModel? textModel, IReadOnlyList<string> pngPaths)
+    {
+        var slides = new List<SlideData>(pngPaths.Count);
+        for (int i = 0; i < pngPaths.Count; i++)
+        {
+            var text = textModel?.Slides.ElementAtOrDefault(i);
+            slides.Add(new SlideData
+            {
+                Index = i + 1,
+                Title = text?.Title ?? "",
+                Lines = text?.Lines ?? Array.Empty<string>(),
+                Images = text?.Images ?? Array.Empty<SlideImageData>(),
+                RenderedImagePath = pngPaths[i],
+            });
+        }
+
+        return new SlidesModel
+        {
+            Slides = slides,
+            SlideWidthEmu = textModel?.SlideWidthEmu ?? 0,
+            SlideHeightEmu = textModel?.SlideHeightEmu ?? 0,
+            ImagesTruncated = textModel?.ImagesTruncated ?? false,
+        };
+    }
+
+    private void ClearSlideCache()
+    {
+        if (_slideCacheDir is null) return;
+        try
+        {
+            if (Directory.Exists(_slideCacheDir))
+                Directory.Delete(_slideCacheDir, recursive: true);
+        }
+        catch { /* ignore */ }
+        _slideCacheDir = null;
+    }
+
     public void Dispose()
     {
+        try { _loadCts?.Cancel(); } catch { }
+        _loadCts?.Dispose();
+        _loadCts = null;
+        ClearSlideCache();
         Structured = null;
     }
 }
-

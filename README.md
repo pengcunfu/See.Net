@@ -10,8 +10,8 @@
 - 二进制十六进制编辑器：自研控件，三栏布局（偏移 / Hex / ASCII），支持字节编辑（覆盖 / 插入 / 删除）、偏移跳转、Hex 搜索、多格式复制、编辑字节高亮。
 - 图片预览：常见格式直接预览，支持适应窗口、实际大小、缩放。
 - Office 文档双引擎预览：docx / xlsx / pptx（含 docm / xlsm / pptm）、RTF、ODF（odt / ods / odp）。
-  - 结构化视图（默认）：DocumentFormat.OpenXml / 自研 RTF·ODF 解析，秒开、可单测；Word 按标题/段落/表格渲染，Excel 多工作表 DataGrid（每表上限 1 万行，超出截断提示），PPT 逐页卡片。
-  - 网页渲染视图：WebView2 + 离线内嵌 mammoth / SheetJS / PPTXjs，接近原样的高保真排版；预览顶部一键切换。旧版 .xls 由 SheetJS 兜底（仅网页视图）；.doc / .ppt 两种引擎皆不支持，提示后可转十六进制。
+  - 结构化视图（默认）：DocumentFormat.OpenXml / 自研 RTF·ODF 解析，秒开、可单测；Word 按标题/段落/表格渲染，Excel 多工作表 DataGrid（每表上限 1 万行，超出截断提示），PPT 优先经本机 PowerPoint 导出整页 PNG 画面预览（未安装则回退文字+内嵌图）。
+  - 网页渲染视图：WebView2 + 离线内嵌 mammoth / SheetJS / PPTXjs，接近原样的高保真排版；预览顶部一键切换。旧版 .xls 由 SheetJS 兜底（仅网页视图）；旧版 .ppt 在已装 PowerPoint 时可整页画面预览，否则提示后可转十六进制。
   - 首次构建需运行 `scripts/fetch-office-libs.ps1` 拉取固定版本的 JS 渲染库（SHA-256 校验）。
 - Markdown 预览：默认渲染视图（Markdig + 自研 GitHub 风格离线样式，表格 / 任务列表 / 围栏代码 / 删除线 / 自动锚点）；一键切换源码模式，编辑 / 保存 / 编码切换全套可用；md 内相对图片按所在目录解析。
 - 网页预览：本地 HTML（.html / .htm / .xhtml）以 WebView2 按原目录渲染，脚本启用、相对引用（./img、style.css）天然生效；一键切换只读源码。
@@ -131,6 +131,7 @@ Documents/
 - 文本预览 / 编辑：100 MB 以内自动加载；超过 100 MB 时提示改用十六进制视图（避免大文本加载拖垮内存）。
 - Office 预览：只读（不进入编辑/保存链路）；Excel 每个工作表预取上限 1 万行、Word 上限 1 万块，超出显示截断提示；网页渲染视图依赖 WebView2 运行时（缺失时结构化视图不受影响）；PPTXjs 为尽力渲染（上游已停止维护），复杂版式以结构化视图为准。
 - PDF 预览：依赖 WebView2 运行时（缺失时降级为提示卡片）；使用 Chromium 内置 PDF 查看器，支持缩放与翻页；只读。
+- Office 网页预览：PPT/PPTX 超过 8 MB 时禁用网页引擎（PPTXjs 需整文件入内存，过大易拖垮预览进程）。大 PPT 请用结构化视图：本机已装 Microsoft PowerPoint 时导出整页 PNG；否则回退文字与内嵌图。
 - 图片仅支持预览，编辑功能后续版本加入。
 - Markdown 预览：内嵌原始 HTML 被转义显示为文本（防脚本执行，原始 HTML 不参与渲染）；渲染输入上限 200 万字符，超出提示切源码模式；渲染视图依赖 WebView2 运行时（缺失时自动进入源码模式，编辑能力不受影响）。
 - 网页预览：脚本默认启用 —— 预览不受信任的 HTML 等同于在浏览器中打开它；文件所在目录映射进 WebView2 沙箱（相对引用所需），映射随预览关闭即销毁，顶级导航与新窗口一律转交系统浏览器。文件名含 `#` / `?` 时渲染不可用，自动切源码模式。

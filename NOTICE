@@ -6,6 +6,7 @@ See.Net 二进制分发物包含以下第三方组件：
 - SheetJS CE 0.20.3 — Apache-2.0（见 webassets/lib/LICENSE-sheetjs）
   Copyright (c) SheetJS LLC
 - PPTXjs v1.21.1 — MIT（见 webassets/lib/LICENSE-pptxjs）
+- FileReader.js v0.99（PPTXjs 依赖）— MIT（Brian Grinstead）
 - jQuery 1.11.3 — MIT（见 webassets/lib/LICENSE-jquery）
 - JSZip 2.x — MIT 或 GPLv3 双许可，本项目选择 MIT（见 webassets/lib/LICENSE-jszip）
 - Markdig 1.3.2 — MIT（随 NuGet 包分发）

@@ -107,9 +107,8 @@
 
         <Grid x:Name="PreviewOverlay" Grid.RowSpan="3" Background="#66000000" Visibility="Collapsed"
               MouseLeftButtonDown="OnOverlayClick">
-            <!-- Stretch：给 WebView2 等内容明确视口；Center+自适应会把零 DesiredSize 的宿主压成仅剩标题栏 -->
             <Border x:Name="PreviewPaneHost" Margin="90" Background="White"
-                    CornerRadius="8" BorderBrush="#404040" BorderThickness="1" Focusable="True"
+                    BorderBrush="#404040" BorderThickness="1" Focusable="True"
                     HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
                 <Border.Effect>
                     <DropShadowEffect BlurRadius="28" ShadowDepth="5" Opacity="0.5"/>

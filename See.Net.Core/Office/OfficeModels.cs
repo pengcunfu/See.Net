@@ -63,6 +63,12 @@ public sealed class SheetData
 public sealed class SlidesModel
 {
     public IReadOnlyList<SlideData> Slides { get; init; } = [];
+    /// <summary>幻灯片宽度（EMU，914400 EMU = 1 英寸）；未知时为 0。</summary>
+    public long SlideWidthEmu { get; init; }
+    /// <summary>幻灯片高度（EMU）；未知时为 0。</summary>
+    public long SlideHeightEmu { get; init; }
+    /// <summary>因图片总预算耗尽等原因，部分图片被跳过。</summary>
+    public bool ImagesTruncated { get; init; }
 }
 
 public sealed class SlideData
@@ -70,4 +76,15 @@ public sealed class SlideData
     public int Index { get; init; }
     public string Title { get; init; } = "";
     public IReadOnlyList<string> Lines { get; init; } = [];
+    /// <summary>本页内嵌图片（按出现顺序，已应用每页/总量护栏）。</summary>
+    public IReadOnlyList<SlideImageData> Images { get; init; } = [];
+    /// <summary>PowerPoint 导出的整页 PNG 路径；优先用于视觉预览。</summary>
+    public string? RenderedImagePath { get; init; }
+}
+
+/// <summary>幻灯片内嵌图片原始字节（解码由 UI 层完成）。</summary>
+public sealed class SlideImageData
+{
+    public required string ContentType { get; init; }
+    public required byte[] Bytes { get; init; }
 }

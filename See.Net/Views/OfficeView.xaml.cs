@@ -51,6 +51,8 @@ public partial class OfficeView : UserControl
                 case nameof(OfficeContentViewModel.State):
                 case nameof(OfficeContentViewModel.Structured):
                 case nameof(OfficeContentViewModel.UseWeb):
+                case nameof(OfficeContentViewModel.StructuredNotice):
+                case nameof(OfficeContentViewModel.LoadingMessage):
                     RefreshAll();
                     break;
             }
@@ -96,6 +98,13 @@ public partial class OfficeView : UserControl
         NoticeTitle.Text = _vm.State == OfficeContentViewModel.LoadState.Error ? "解析失败" : "此格式无结构化视图";
         NoticeBody.Text = _vm.State == OfficeContentViewModel.LoadState.Error
             ? (_vm.Error ?? "") : (_vm.StructuredNotice ?? "");
+
+        // 已加载但仍有提示（如未装 PowerPoint / 导出失败回退）
+        bool softNotice = _vm.State == OfficeContentViewModel.LoadState.Loaded
+            && !string.IsNullOrWhiteSpace(_vm.StructuredNotice)
+            && !_vm.UseWeb;
+        SoftNoticeBanner.Visibility = softNotice ? Visibility.Visible : Visibility.Collapsed;
+        SoftNoticeText.Text = softNotice ? _vm.StructuredNotice! : "";
 
         if (_vm.State == OfficeContentViewModel.LoadState.Loaded) PopulateForModel();
     }

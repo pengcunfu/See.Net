@@ -165,4 +165,10 @@ public partial class OfficeWebHost : WebViewHostBase
         core.WebResourceRequested -= OnWebResourceRequested;
         core.WebMessageReceived -= OnWebMessageReceived;
     }
+
+    protected override void OnEngineCrashed(string message)
+    {
+        if (DataContext is OfficeContentViewModel vm)
+            Dispatcher.BeginInvoke(() => vm.ReportWebEngineCrash(message));
+    }
 }
