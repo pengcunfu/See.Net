@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Markdown 预览</title>
-<!-- 注意：本页在 ?base= 存在时会插入 <base>，所有资产引用必须写绝对地址，避免被 base 带偏 -->
-<link rel="stylesheet" href="https://officeline.local/markdown.css">
+<!-- 样式与 /data 均在 see-md.local（绝对地址）；相对图片走 <base> → mdcontent.local -->
+<link rel="stylesheet" href="https://see-md.local/markdown.css">
 <style>
   :root { color-scheme: light; }
   * { box-sizing: border-box; }
@@ -46,15 +46,12 @@
     statusEl.textContent = "渲染失败：" + message;
   }
 
-  // md 所在目录经宿主映射为 mdcontent.local，插入 <base> 让相对图片按原目录解析
-  var base = new URLSearchParams(location.search).get("base");
-  if (base) {
-    var tag = document.createElement("base");
-    tag.href = "https://mdcontent.local/" + decodeURIComponent(base) + "/";
-    document.head.appendChild(tag);
-  }
+  // md 所在目录映射为 mdcontent.local；必须在 fetch 之前设好，但 fetch 要用绝对 URL
+  var tag = document.createElement("base");
+  tag.href = "https://mdcontent.local/";
+  document.head.appendChild(tag);
 
-  fetch("data", { cache: "no-store" })
+  fetch("https://see-md.local/data", { cache: "no-store" })
     .then(function (res) {
       if (!res.ok) throw new Error("拉取渲染结果失败（HTTP " + res.status + "）");
       return res.text();

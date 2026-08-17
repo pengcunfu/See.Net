@@ -36,6 +36,11 @@ public static class FileTypeDetector
         ".mp3", ".wav", ".flac", ".ogg", ".oga", ".m4a", ".aac", ".wma", ".opus", ".aif", ".aiff",
     };
 
+    private static readonly HashSet<string> PdfExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".pdf",
+    };
+
     private static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".tif", ".tiff", ".ico", ".jfif",
@@ -50,7 +55,7 @@ public static class FileTypeDetector
     private static readonly HashSet<string> BinaryExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".exe", ".dll", ".sys", ".bin", ".dat", ".iso", ".img", ".zip", ".7z", ".rar", ".gz", ".tar",
-        ".xz", ".bz2", ".pdf", ".mp4", ".mkv", ".avi", ".wmv",
+        ".xz", ".bz2", ".mp4", ".mkv", ".avi", ".wmv",
         ".mov", ".flv", ".pak", ".so", ".a", ".lib", ".obj", ".pdb", ".db", ".sqlite",
         ".mdb", ".dmp", ".msi", ".cab", ".jar", ".apk", ".ipa", ".nupkg", ".whl", ".class", ".pyc",
         ".o", ".ko", ".efi",
@@ -83,6 +88,7 @@ public static class FileTypeDetector
         if (ImageExtensions.Contains(extension)) return ContentKind.Image;
         if (DocumentExtensions.Contains(extension)) return ContentKind.Document;
         if (AudioExtensions.Contains(extension)) return ContentKind.Audio;
+        if (PdfExtensions.Contains(extension)) return ContentKind.Pdf;
         if (BinaryExtensions.Contains(extension)) return ContentKind.Binary;
         return ContentKind.Unknown;
     }
@@ -107,7 +113,7 @@ public static class FileTypeDetector
             return ContentKind.Image;
 
         if (head.Length >= 4 && head[0] == 0x25 && head[1] == 0x50 && head[2] == 0x44 && head[3] == 0x46)
-            return ContentKind.Binary;
+            return ContentKind.Pdf; // %PDF
         if (head.Length >= 2 && head[0] == (byte)'M' && head[1] == (byte)'Z')
             return ContentKind.Binary;
         if (head.Length >= 4 && head[0] == 0x50 && head[1] == 0x4B && (head[2] == 0x03 || head[2] == 0x05 || head[2] == 0x07))

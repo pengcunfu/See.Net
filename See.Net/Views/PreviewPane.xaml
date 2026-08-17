@@ -54,6 +54,9 @@
                 <DataTemplate DataType="{x:Type vm:AudioContentViewModel}">
                     <views:AudioView/>
                 </DataTemplate>
+                <DataTemplate DataType="{x:Type vm:PdfContentViewModel}">
+                    <views:PdfView/>
+                </DataTemplate>
             </ContentControl.Resources>
         </ContentControl>
     </Grid>

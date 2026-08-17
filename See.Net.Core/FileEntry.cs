@@ -11,6 +11,7 @@ public enum ContentKind
     Markdown,
     WebPage,
     Audio,
+    Pdf,
     Unknown,
 }
 
@@ -36,6 +37,7 @@ public sealed class FileEntry
         ContentKind.Markdown => "Markdown",
         ContentKind.WebPage => "网页",
         ContentKind.Audio => "音频",
+        ContentKind.Pdf => "PDF",
         _ => IsDirectory ? "文件夹" : "未知",
     };
 
@@ -46,6 +48,7 @@ public sealed class FileEntry
         ContentKind.Code => "\uE943",
         ContentKind.WebPage => "\uE774", // Globe
         ContentKind.Audio => "\uE90B",   // MusicInfo
+        ContentKind.Pdf => "\uE8A5",    // Document
         _ => "\uE8A5",
     };
 

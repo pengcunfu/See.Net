@@ -47,6 +47,9 @@ public sealed class FileTypeDetectorTests : IDisposable
         Assert.Equal(ContentKind.Audio, FileTypeDetector.ByExtension(".ogg"));
         Assert.Equal(ContentKind.Audio, FileTypeDetector.ByExtension(".m4a"));
         Assert.Equal(ContentKind.Audio, FileTypeDetector.ByExtension(".wma"));
+
+        Assert.Equal(ContentKind.Pdf, FileTypeDetector.ByExtension(".pdf"));
+        Assert.Equal(ContentKind.Pdf, FileTypeDetector.ByExtension(".PDF"));
     }
 
     [Fact]
@@ -68,7 +71,7 @@ public sealed class FileTypeDetectorTests : IDisposable
         Assert.Equal(ContentKind.Image, FileTypeDetector.ByMagic([0xFF, 0xD8, 0xFF, 0xE0]));
         Assert.Equal(ContentKind.Binary, FileTypeDetector.ByMagic([0x4D, 0x5A, 0x90, 0x00]));
         Assert.Equal(ContentKind.Binary, FileTypeDetector.ByMagic([0x50, 0x4B, 0x03, 0x04]));
-        Assert.Equal(ContentKind.Binary, FileTypeDetector.ByMagic([0x25, 0x50, 0x44, 0x46]));
+        Assert.Equal(ContentKind.Pdf, FileTypeDetector.ByMagic([0x25, 0x50, 0x44, 0x46]));
         Assert.Equal(ContentKind.Unknown, FileTypeDetector.ByMagic([0x41, 0x42, 0x43, 0x44]));
     }
 

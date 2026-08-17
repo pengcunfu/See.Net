@@ -81,6 +81,9 @@ public partial class PreviewViewModel : ObservableObject
             case ContentKind.Audio:
                 LoadAudio(file);
                 break;
+            case ContentKind.Pdf:
+                LoadPdf(file);
+                break;
             case ContentKind.Binary:
                 LoadHex(file);
                 break;
@@ -249,5 +252,20 @@ public partial class PreviewViewModel : ObservableObject
             return;
         }
         Content = new AudioContentViewModel(file.FullPath, file.Name, file.Length);
+    }
+
+    /// <summary>PDF：WebView2 内置 PDF 查看器；运行时缺失降级为提示卡片。</summary>
+    private void LoadPdf(FileEntry file)
+    {
+        if (!Views.WebViewHostBase.IsRuntimeAvailable())
+        {
+            Content = new InfoContentViewModel(
+                "PDF 预览需要 WebView2 运行时",
+                "未检测到 WebView2 运行时，无法预览 PDF。可安装 Evergreen 运行时后重试，或以十六进制查看文件头。",
+                "以十六进制打开",
+                () => LoadHex(file));
+            return;
+        }
+        Content = new PdfContentViewModel(file.FullPath);
     }
 }

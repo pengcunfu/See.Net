@@ -80,13 +80,13 @@ public partial class MarkdownView : UserControl
         if (wantWeb)
         {
             _webHost ??= new MarkdownWebHost { DataContext = _vm };
-            if (WebSlot.Content != _webHost) WebSlot.Content = _webHost;
-            // 首次进入或源码更新后重新加载（Html 变更触发导航刷新）
+            // 先 LoadAsync 写入 _basePath，再挂树触发 Configure，保证 md 目录映射就绪
             if (!_webLoadedFor && _vm.Html is not null)
             {
                 _ = _webHost.LoadAsync(_vm.FilePath);
                 _webLoadedFor = true;
             }
+            if (WebSlot.Content != _webHost) WebSlot.Content = _webHost;
         }
         else
         {

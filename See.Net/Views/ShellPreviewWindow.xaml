@@ -32,6 +32,9 @@
         <DataTemplate DataType="{x:Type vm:AudioContentViewModel}">
             <views:AudioView/>
         </DataTemplate>
+        <DataTemplate DataType="{x:Type vm:PdfContentViewModel}">
+            <views:PdfView/>
+        </DataTemplate>
     </Window.Resources>
     <Border CornerRadius="8" Background="White" BorderBrush="#D0D0D0" BorderThickness="1">
         <Grid>

@@ -6,11 +6,14 @@ using See.ViewModels;
 namespace See.Views;
 
 /// <summary>
-/// Markdown 渲染宿主：webassets 提供渲染容器页与样式，
-/// md 所在目录映射为虚拟主机（相对图片解析），HTML 片段经 /data 拦截回吐。
+/// Markdown 渲染宿主：
+/// - see-md.local（未映射）：播放容器页 / CSS / 渲染 HTML 片段（可 WebResourceRequested）
+/// - mdcontent.local（目录映射）：md 所在目录，供相对图片解析
+/// 注意：映射域上 WebResourceRequested 不触发，故 /data 绝不能挂在 AssetsHost 上。
 /// </summary>
 public partial class MarkdownWebHost : WebViewHostBase
 {
+    public const string MarkdownDataHost = "see-md.local";
     private const string ContentHost = "mdcontent.local";
 
     private string? _basePath;
@@ -20,21 +23,17 @@ public partial class MarkdownWebHost : WebViewHostBase
         InitializeComponent();
     }
 
-    /// <summary>加载渲染结果：basePath 是 md 文件路径（取目录映射 + base href）。</summary>
+    /// <summary>加载渲染结果：basePath 是 md 文件路径（取目录映射）。</summary>
     public Task LoadAsync(string basePath)
     {
         _basePath = basePath;
-        var dir = Path.GetDirectoryName(basePath) ?? ".";
-        // base 参数经 URL 编码传给页面，页面据此插入 <base>（目录映射 + 相对图片）
-        var encoded = Uri.EscapeDataString(dir.Replace('\\', '/'));
-        NavigateOrPending($"https://{AssetsHost}/markdown-preview.html?base={encoded}");
+        NavigateOrPending($"https://{MarkdownDataHost}/markdown-preview.html");
         return Task.CompletedTask;
     }
 
     protected override void Configure(CoreWebView2 core)
     {
-        MapAssets(core);
-
+        // 不把 MarkdownDataHost 做文件夹映射，否则 /data 拦截失效。
         if (_basePath is not null)
         {
             var dir = Path.GetDirectoryName(_basePath);
@@ -44,29 +43,76 @@ public partial class MarkdownWebHost : WebViewHostBase
         }
 
         core.WebResourceRequested += OnWebResourceRequested;
-        core.AddWebResourceRequestedFilter($"https://{AssetsHost}/data", CoreWebView2WebResourceContext.Other);
+        core.AddWebResourceRequestedFilter($"https://{MarkdownDataHost}/*", CoreWebView2WebResourceContext.All);
         core.WebMessageReceived += OnWebMessageReceived;
         core.NavigationStarting += OnNavigationStarting;
         core.NewWindowRequested += OnNewWindowRequested;
+
+        if (_basePath is not null)
+            NavigateOrPending($"https://{MarkdownDataHost}/markdown-preview.html");
     }
 
-    /// <summary>拦截 data 请求，回吐视图模型 Html 的 UTF-8 字节。</summary>
     private void OnWebResourceRequested(object? sender, CoreWebView2WebResourceRequestedEventArgs e)
     {
+        if (!Uri.TryCreate(e.Request.Uri, UriKind.Absolute, out var uri)
+            || !uri.Host.Equals(MarkdownDataHost, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        string path = uri.AbsolutePath;
+        if (path.Equals("/markdown-preview.html", StringComparison.OrdinalIgnoreCase))
+        {
+            ServeAsset(e, "markdown-preview.html", "text/html; charset=utf-8");
+            return;
+        }
+
+        if (path.Equals("/markdown.css", StringComparison.OrdinalIgnoreCase))
+        {
+            ServeAsset(e, "markdown.css", "text/css; charset=utf-8");
+            return;
+        }
+
+        if (path.Equals("/data", StringComparison.OrdinalIgnoreCase))
+        {
+            ServeRenderedHtml(e);
+            return;
+        }
+
+        e.Response = SharedEnvironment.CreateWebResourceResponse(null, 404, "Not Found", "");
+    }
+
+    private static void ServeAsset(CoreWebView2WebResourceRequestedEventArgs e, string fileName, string contentType)
+    {
+        try
+        {
+            var fullPath = Path.Combine(AppContext.BaseDirectory, "webassets", fileName);
+            var stream = File.OpenRead(fullPath);
+            e.Response = SharedEnvironment.CreateWebResourceResponse(
+                stream, 200, "OK", $"Content-Type: {contentType}\nCache-Control: no-cache");
+        }
+        catch (Exception ex)
+        {
+            var bytes = Encoding.UTF8.GetBytes(ex.Message);
+            e.Response = SharedEnvironment.CreateWebResourceResponse(
+                new MemoryStream(bytes), 500, "Error", "Content-Type: text/plain; charset=utf-8");
+        }
+    }
+
+    private void ServeRenderedHtml(CoreWebView2WebResourceRequestedEventArgs e)
+    {
         var vm = DataContext as MarkdownContentViewModel;
-        if (vm?.Html is null || !e.Request.Uri.EndsWith("/data", StringComparison.Ordinal))
+        if (vm?.Html is null)
         {
             e.Response = SharedEnvironment.CreateWebResourceResponse(null, 404, "Not Found", "");
             return;
         }
 
         var bytes = Encoding.UTF8.GetBytes(vm.Html);
-        var stream = new MemoryStream(bytes);
         e.Response = SharedEnvironment.CreateWebResourceResponse(
-            stream, 200, "OK", "Content-Type: text/html; charset=utf-8");
+            new MemoryStream(bytes), 200, "OK", "Content-Type: text/html; charset=utf-8");
     }
 
-    /// <summary>接收渲染页 postMessage 的错误上报。</summary>
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
         var vm = DataContext as MarkdownContentViewModel;
@@ -92,16 +138,16 @@ public partial class MarkdownWebHost : WebViewHostBase
         return end > start ? json[start..end] : json;
     }
 
-    /// <summary>虚拟域之外的顶级导航取消并交给系统浏览器（外链不内嵌跳转）。</summary>
     private void OnNavigationStarting(object? sender, CoreWebView2NavigationStartingEventArgs e)
     {
         var host = new Uri(e.Uri).Host;
-        if (host == AssetsHost || host == ContentHost) return;
+        if (host.Equals(MarkdownDataHost, StringComparison.OrdinalIgnoreCase)
+            || host.Equals(ContentHost, StringComparison.OrdinalIgnoreCase))
+            return;
         e.Cancel = true;
         OpenExternally(e.Uri);
     }
 
-    /// <summary>新窗口一律外部打开，不在预览内弹出。</summary>
     private void OnNewWindowRequested(object? sender, CoreWebView2NewWindowRequestedEventArgs e)
     {
         e.Handled = true;
@@ -118,7 +164,7 @@ public partial class MarkdownWebHost : WebViewHostBase
         }
         catch
         {
-            // 打开失败忽略（无默认浏览器等场景）
+            // 打开失败忽略
         }
     }
 
