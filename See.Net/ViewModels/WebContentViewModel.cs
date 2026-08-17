@@ -1,10 +1,10 @@
-using System.IO;
+﻿using System.IO;
 using System.Text;
 using CommunityToolkit.Mvvm.ComponentModel;
 using See.Net.Core;
-using See.Net.Services;
+using See.Services;
 
-namespace See.Net.ViewModels;
+namespace See.ViewModels;
 
 /// <summary>
 /// 本地网页双视图状态机：默认 WebView2 渲染（脚本启用，目录映射解析相对引用），

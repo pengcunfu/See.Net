@@ -1,6 +1,6 @@
-using System.IO;
+﻿using System.IO;
 
-namespace See.Net;
+namespace See;
 
 /// <summary>应用数据目录（用户文档目录下）。</summary>
 public static class AppPaths

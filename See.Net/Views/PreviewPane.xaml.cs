@@ -1,6 +1,6 @@
-using System.Windows.Controls;
+﻿using System.Windows.Controls;
 
-namespace See.Net.Views;
+namespace See.Views;
 
 public partial class PreviewPane : UserControl
 {

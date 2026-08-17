@@ -1,9 +1,9 @@
-using System.Windows.Media;
+﻿using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using See.Net.Core;
 
-namespace See.Net.ViewModels;
+namespace See.ViewModels;
 
 /// <summary>图片预览内容。</summary>
 public sealed partial class ImageContentViewModel : ObservableObject

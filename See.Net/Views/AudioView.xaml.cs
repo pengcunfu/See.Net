@@ -1,8 +1,8 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
-using See.Net.ViewModels;
+using See.ViewModels;
 
-namespace See.Net.Views;
+namespace See.Views;
 
 /// <summary>音频预览视图：AudioWebHost 播放页 + 错误条。</summary>
 public partial class AudioView : UserControl

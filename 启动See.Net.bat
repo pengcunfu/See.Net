@@ -9,14 +9,14 @@ echo.
 
 cd /d "%~dp0bin\Release\net10.0-windows\win-x64\publish"
 
-if not exist "See.Net.exe" (
-    echo ? ?????? See.Net.exe
+if not exist "See.exe" (
+    echo ? ?????? See.exe
     echo ??????????
     pause
     exit /b 1
 )
 
-start "" "See.Net.exe"
+start "" "See.exe"
 
 echo ? See.Net ????
 echo.

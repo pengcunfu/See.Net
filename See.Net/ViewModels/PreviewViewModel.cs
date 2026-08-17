@@ -1,12 +1,12 @@
-using System.IO;
+﻿using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
 using See.Net.Core;
-using See.Net.Services;
+using See.Services;
 
-namespace See.Net.ViewModels;
+namespace See.ViewModels;
 
 /// <summary>预览层状态：加载并持有当前文件的内容视图模型。</summary>
 public partial class PreviewViewModel : ObservableObject

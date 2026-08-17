@@ -1,8 +1,8 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
-using See.Net.Services;
+using See.Services;
 
-namespace See.Net;
+namespace See;
 
 /// <summary>设置窗口：开机自启动、保存前备份、十六进制字号与每行字节数。</summary>
 public partial class SettingsWindow : Window

@@ -5,7 +5,7 @@ using CommunityToolkit.Mvvm.Input;
 using Microsoft.Web.WebView2.Core;
 using See.Net.Core.Office;
 
-namespace See.Net.ViewModels;
+namespace See.ViewModels;
 
 /// <summary>
 /// Office 文档内容视图模型：双引擎状态机。

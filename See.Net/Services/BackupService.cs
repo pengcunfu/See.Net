@@ -1,6 +1,6 @@
-using System.IO;
+﻿using System.IO;
 
-namespace See.Net.Services;
+namespace See.Services;
 
 /// <summary>保存前的文件备份服务（备份到 Documents/See.Net/Backups）。</summary>
 public sealed class BackupService

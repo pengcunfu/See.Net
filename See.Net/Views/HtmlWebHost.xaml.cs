@@ -1,8 +1,8 @@
-using System.IO;
+﻿using System.IO;
 using Microsoft.Web.WebView2.Core;
-using See.Net.ViewModels;
+using See.ViewModels;
 
-namespace See.Net.Views;
+namespace See.Views;
 
 /// <summary>
 /// 本地网页渲染宿主：文件所在目录映射为虚拟主机 preview.local，

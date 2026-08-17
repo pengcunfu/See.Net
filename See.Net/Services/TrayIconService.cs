@@ -1,8 +1,8 @@
-using System.Drawing;
+﻿using System.Drawing;
 using System.IO;
 using System.Windows.Forms;
 
-namespace See.Net.Services;
+namespace See.Services;
 
 /// <summary>系统托盘图标：重新打开主窗口、打开设置、退出应用。</summary>
 public sealed class TrayIconService : IDisposable

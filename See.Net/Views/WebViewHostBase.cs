@@ -1,9 +1,9 @@
-using System.IO;
+﻿using System.IO;
 using System.Windows;
 using Microsoft.Web.WebView2.Core;
 using WebView2 = Microsoft.Web.WebView2.Wpf.WebView2;
 
-namespace See.Net.Views;
+namespace See.Views;
 
 /// <summary>
 /// WebView2 宿主基类：共享运行时探测、环境创建与释放生命周期。

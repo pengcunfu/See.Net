@@ -1,11 +1,11 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using System.Windows;
-using See.Net.Controls;
+using See.Controls;
 using See.Net.Core;
-using See.Net.Services;
+using See.Services;
 
-namespace See.Net.ViewModels;
+namespace See.ViewModels;
 
 /// <summary>十六进制查看/编辑内容。</summary>
 public sealed partial class HexContentViewModel : ObservableObject, IDisposable

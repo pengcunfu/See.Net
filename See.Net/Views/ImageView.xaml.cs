@@ -1,9 +1,9 @@
 ﻿using System.ComponentModel;
 using System.Windows;
 using System.Windows.Controls;
-using See.Net.ViewModels;
+using See.ViewModels;
 
-namespace See.Net.Views;
+namespace See.Views;
 
 public partial class ImageView : UserControl
 {

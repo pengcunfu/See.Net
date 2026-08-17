@@ -1,4 +1,4 @@
-namespace See.Net;
+﻿namespace See;
 
 /// <summary>应用设置（持久化到 Documents/See.Net/settings.json）。</summary>
 public sealed class AppSettings

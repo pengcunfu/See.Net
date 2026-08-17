@@ -1,8 +1,8 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Controls;
-using See.Net.ViewModels;
+using See.ViewModels;
 
-namespace See.Net.Views;
+namespace See.Views;
 
 /// <summary>
 /// 网页双视图：渲染（HtmlWebHost，目录映射 + 脚本启用）与只读源码（TextView 懒加载）切换。

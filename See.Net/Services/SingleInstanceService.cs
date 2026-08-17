@@ -1,11 +1,11 @@
-using System.IO;
+﻿using System.IO;
 using System.IO.Pipes;
 using System.Security.Principal;
 using System.Text;
 using System.Threading;
 using System.Windows.Threading;
 
-namespace See.Net.Services;
+namespace See.Services;
 
 /// <summary>命名互斥锁保证单例；命名管道向已运行实例转发命令行文件参数。</summary>
 public sealed class SingleInstanceService : IDisposable

@@ -1,9 +1,9 @@
-using System.IO;
+﻿using System.IO;
 using System.Text;
 using Microsoft.Web.WebView2.Core;
-using See.Net.ViewModels;
+using See.ViewModels;
 
-namespace See.Net.Views;
+namespace See.Views;
 
 /// <summary>
 /// Markdown 渲染宿主：webassets 提供渲染容器页与样式，

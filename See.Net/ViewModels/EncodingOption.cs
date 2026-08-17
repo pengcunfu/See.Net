@@ -1,6 +1,6 @@
-using System.Text;
+﻿using System.Text;
 
-namespace See.Net.ViewModels;
+namespace See.ViewModels;
 
 public sealed record EncodingOption(string DisplayName, Encoding Encoding, bool WriteBom)
 {

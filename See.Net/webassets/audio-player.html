@@ -137,7 +137,7 @@
   </div>
 </div>
 
-<audio id="a" src="data" preload="metadata"></audio>
+<audio id="a" preload="metadata"></audio>
 
 <script>
 (function () {
@@ -223,10 +223,15 @@
 
   audio.addEventListener("error", function () {
     var code = audio.error ? audio.error.code : 0;
-    if (code === 4 /* MEDIA_ERR_SRC_NOT_SUPPORTED */)
-      reportError("此音频编码 WebView2 媒体栈不支持（如 WMA / AIFF / MIDI），请用系统播放器打开。");
+    // 1=ABORTED 2=NETWORK 3=DECODE 4=SRC_NOT_SUPPORTED（拉流失败时也可能报 4）
+    if (code === 2)
+      reportError("音频数据读取失败（网络/拦截错误）。");
+    else if (code === 3)
+      reportError("音频解码失败，文件可能已损坏。");
+    else if (code === 4)
+      reportError("无法播放此音频（编码不受支持，或媒体流未正确返回）。常见不支持：WMA / AIFF / MIDI。");
     else
-      reportError("音频数据读取失败（错误码 " + code + "）。");
+      reportError("音频播放失败（错误码 " + code + "）。");
   });
 
   var seeking = false;
@@ -261,6 +266,8 @@
 
   els.meta.textContent = "正在读取…";
   updatePlayButton();
+  // 与播放页同域 /stream，经宿主 WebResourceRequested 回吐（含 Range）
+  audio.src = "stream";
 })();
 </script>
 </body>

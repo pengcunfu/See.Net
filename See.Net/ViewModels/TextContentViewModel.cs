@@ -1,12 +1,12 @@
-using System.Text;
+﻿using System.Text;
 using System.IO;
 using System.Windows;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using See.Net.Core;
-using See.Net.Services;
+using See.Services;
 
-namespace See.Net.ViewModels;
+namespace See.ViewModels;
 
 /// <summary>文本预览/编辑内容。</summary>
 public partial class TextContentViewModel : ObservableObject

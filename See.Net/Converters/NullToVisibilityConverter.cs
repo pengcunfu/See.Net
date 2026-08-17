@@ -1,8 +1,8 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
 
-namespace See.Net.Converters;
+namespace See.Converters;
 
 public sealed class NullToVisibilityConverter : IValueConverter
 {

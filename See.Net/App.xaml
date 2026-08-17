@@ -1,8 +1,8 @@
-<Application x:Class="See.Net.App"
+﻿<Application x:Class="See.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Application.Resources>
-        <!-- 引擎 / 视图切换按钮（OfficeView、MarkdownView、HtmlView 共用） -->
+        <!-- 模型 / 视图切换按钮（OfficeView、MarkdownView、HtmlView 共用）-->
         <Style x:Key="EngineToggle" TargetType="RadioButton">
             <Setter Property="Foreground" Value="#374151"/>
             <Setter Property="Cursor" Value="Hand"/>

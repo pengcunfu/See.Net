@@ -1,8 +1,8 @@
 ﻿using System.IO;
 using Microsoft.Web.WebView2.Core;
-using See.Net.ViewModels;
+using See.ViewModels;
 
-namespace See.Net.Views;
+namespace See.Views;
 
 /// <summary>
 /// Office 网页渲染宿主：WebView2 虚拟主机映射 webassets 目录，

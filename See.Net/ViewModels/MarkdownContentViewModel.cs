@@ -1,8 +1,8 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using See.Net.Core.Markdown;
 
-namespace See.Net.ViewModels;
+namespace See.ViewModels;
 
 /// <summary>
 /// Markdown 双视图状态机：默认渲染（WebView2），可切换源码（复用文本编辑栈）。

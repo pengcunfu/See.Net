@@ -1,12 +1,12 @@
-using System.IO;
+﻿using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Threading;
 using See.Net.Core;
-using See.Net.ViewModels;
-using See.Net.Views;
+using See.ViewModels;
+using See.Views;
 
-namespace See.Net.Services;
+namespace See.Services;
 
 /// <summary>
 /// 资源管理器空格预览：全局键盘钩子捕获空格，

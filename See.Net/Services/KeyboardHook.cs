@@ -1,6 +1,6 @@
-using System.Runtime.InteropServices;
+﻿using System.Runtime.InteropServices;
 
-namespace See.Net.Services;
+namespace See.Services;
 
 /// <summary>全局低级键盘钩子（WH_KEYBOARD_LL）。回调运行在安装线程的消息循环（WPF UI 线程）。</summary>
 public sealed class KeyboardHook : IDisposable

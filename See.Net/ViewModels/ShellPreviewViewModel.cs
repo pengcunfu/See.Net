@@ -1,10 +1,10 @@
-using System.Diagnostics;
+﻿using System.Diagnostics;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using See.Net.Core;
-using See.Net.Services;
+using See.Services;
 
-namespace See.Net.ViewModels;
+namespace See.ViewModels;
 
 /// <summary>资源管理器空格预览浮窗的视图模型（多选文件时支持 ↑/↓ 切换）。</summary>
 public sealed partial class ShellPreviewViewModel : ObservableObject

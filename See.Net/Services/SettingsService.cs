@@ -1,7 +1,7 @@
-using System.IO;
+﻿using System.IO;
 using System.Text.Json;
 
-namespace See.Net.Services;
+namespace See.Services;
 
 /// <summary>设置读写服务。</summary>
 public sealed class SettingsService

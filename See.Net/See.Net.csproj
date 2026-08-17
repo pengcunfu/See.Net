@@ -8,6 +8,11 @@
     <UseWPF>true</UseWPF>
     <UseWindowsForms>true</UseWindowsForms>
     <ApplicationIcon>..\packaging\assets\app.ico</ApplicationIcon>
+    <AssemblyName>See</AssemblyName>
+    <RootNamespace>See</RootNamespace>
+    <Product>See</Product>
+    <Company>See</Company>
+    <Copyright>© 2026 See. All rights reserved.</Copyright>
   </PropertyGroup>
 
   <!-- 仅托盘服务显式使用 WinForms，移除隐式全局 using，避免与 WPF 类型命名冲突 -->

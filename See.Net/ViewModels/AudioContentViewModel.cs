@@ -1,7 +1,7 @@
-using CommunityToolkit.Mvvm.ComponentModel;
+﻿using CommunityToolkit.Mvvm.ComponentModel;
 using See.Net.Core;
 
-namespace See.Net.ViewModels;
+namespace See.ViewModels;
 
 /// <summary>音频预览内容：元数据展示 + 播放错误上报（播放器由 WebView2 页承载）。</summary>
 public sealed partial class AudioContentViewModel : ObservableObject, IDisposable

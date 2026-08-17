@@ -1,7 +1,7 @@
-<views:WebViewHostBase x:Class="See.Net.Views.MarkdownWebHost"
+﻿<views:WebViewHostBase x:Class="See.Views.MarkdownWebHost"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:views="clr-namespace:See.Net.Views">
+             xmlns:views="clr-namespace:See.Views">
     <Grid>
         <!-- WebView2 元素在基类按需创建（WebViewHostBase.cs） -->
     </Grid>

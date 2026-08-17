@@ -1,6 +1,6 @@
-using System.IO;
+﻿using System.IO;
 
-namespace See.Net;
+namespace See;
 
 /// <summary>临时文件 + 原子替换的写入工具。</summary>
 public static class AtomicFile

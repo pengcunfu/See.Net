@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
@@ -6,7 +6,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using See.Net.Core;
 
-namespace See.Net.Controls;
+namespace See.Controls;
 
 /// <summary>
 /// 自绘十六进制编辑器控件（实现 IScrollInfo 支持任意大小文件的虚拟化滚动）。

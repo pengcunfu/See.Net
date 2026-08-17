@@ -1,7 +1,7 @@
-using System.Windows.Input;
+﻿using System.Windows.Input;
 using CommunityToolkit.Mvvm.Input;
 
-namespace See.Net.ViewModels;
+namespace See.ViewModels;
 
 /// <summary>提示信息内容（不支持预览、文件过大等）。</summary>
 public sealed class InfoContentViewModel

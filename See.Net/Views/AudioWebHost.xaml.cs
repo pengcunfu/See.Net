@@ -1,16 +1,21 @@
-using System.IO;
+﻿using System.IO;
+using System.Text;
 using Microsoft.Web.WebView2.Core;
 using See.Net.Core;
-using See.Net.ViewModels;
+using See.ViewModels;
 
-namespace See.Net.Views;
+namespace See.Views;
 
 /// <summary>
-/// 音频播放宿主：/data 拦截回吐音频字节，实现 HTTP Range（206），
-/// 供 Chromium 媒体栈 seek（未缓冲位置拖动依赖 Range 重请求）。
+/// 音频播放宿主：播放页与音频字节均经独立未映射域名 + WebResourceRequested 回吐。
+/// 注意：WebView2 对 SetVirtualHostNameToFolderMapping 的域名不触发 WebResourceRequested，
+/// 因此不能把 /data 挂在 AssetsHost（officeline.local）上。
 /// </summary>
 public partial class AudioWebHost : WebViewHostBase
 {
+    /// <summary>仅本宿主使用的音频域；不调用文件夹映射，保证可拦截。</summary>
+    public const string AudioDataHost = "see-audio.local";
+
     private readonly string? _path;
     private readonly string? _name;
     private readonly long _size;
@@ -30,24 +35,65 @@ public partial class AudioWebHost : WebViewHostBase
 
     protected override void Configure(CoreWebView2 core)
     {
-        MapAssets(core);
-
+        // 故意不 MapAssets 到 AudioDataHost：映射域上 WebResourceRequested 不会触发。
         core.WebResourceRequested += OnWebResourceRequested;
-        core.AddWebResourceRequestedFilter($"https://{AssetsHost}/data", CoreWebView2WebResourceContext.Other);
+        core.AddWebResourceRequestedFilter($"https://{AudioDataHost}/*", CoreWebView2WebResourceContext.All);
         core.WebMessageReceived += OnWebMessageReceived;
 
         if (_path is not null)
         {
-            var url = $"https://{AssetsHost}/audio-player.html"
-                + $"?name={Uri.EscapeDataString(_name ?? "")}&size={_size}";
+            var sizeText = FileEntry.FormatSize(_size);
+            var url = $"https://{AudioDataHost}/audio-player.html"
+                + $"?name={Uri.EscapeDataString(_name ?? "")}&size={Uri.EscapeDataString(sizeText)}";
             NavigateOrPending(url);
         }
     }
 
-    /// <summary>拦截 data 请求：无 Range 回 200 全量；带可满足 Range 回 206 局部（限长视图流）。</summary>
     private void OnWebResourceRequested(object? sender, CoreWebView2WebResourceRequestedEventArgs e)
     {
-        if (_path is null || !e.Request.Uri.EndsWith("/data", StringComparison.Ordinal))
+        if (!Uri.TryCreate(e.Request.Uri, UriKind.Absolute, out var uri)
+            || !uri.Host.Equals(AudioDataHost, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
+        string path = uri.AbsolutePath;
+        if (path.Equals("/audio-player.html", StringComparison.OrdinalIgnoreCase))
+        {
+            ServePlayerPage(e);
+            return;
+        }
+
+        if (path.Equals("/stream", StringComparison.OrdinalIgnoreCase))
+        {
+            ServeAudioStream(e);
+            return;
+        }
+
+        e.Response = SharedEnvironment.CreateWebResourceResponse(null, 404, "Not Found", "");
+    }
+
+    private void ServePlayerPage(CoreWebView2WebResourceRequestedEventArgs e)
+    {
+        try
+        {
+            var htmlPath = Path.Combine(AppContext.BaseDirectory, "webassets", "audio-player.html");
+            var stream = File.OpenRead(htmlPath);
+            e.Response = SharedEnvironment.CreateWebResourceResponse(
+                stream, 200, "OK", "Content-Type: text/html; charset=utf-8\nCache-Control: no-cache");
+        }
+        catch (Exception ex)
+        {
+            var bytes = Encoding.UTF8.GetBytes($"<!DOCTYPE html><pre>播放页加载失败：{ex.Message}</pre>");
+            e.Response = SharedEnvironment.CreateWebResourceResponse(
+                new MemoryStream(bytes), 500, "Error", "Content-Type: text/html; charset=utf-8");
+        }
+    }
+
+    /// <summary>无 Range 回 200 全量；可满足 Range 回 206（限长视图流，供 seek）。</summary>
+    private void ServeAudioStream(CoreWebView2WebResourceRequestedEventArgs e)
+    {
+        if (_path is null)
         {
             e.Response = SharedEnvironment.CreateWebResourceResponse(null, 404, "Not Found", "");
             return;
@@ -102,7 +148,6 @@ public partial class AudioWebHost : WebViewHostBase
         _ => "application/octet-stream",
     };
 
-    /// <summary>接收播放页 postMessage 的错误上报（编解码不支持 / 拉取失败）。</summary>
     private void OnWebMessageReceived(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
         var vm = DataContext as AudioContentViewModel;
@@ -134,7 +179,7 @@ public partial class AudioWebHost : WebViewHostBase
         core.WebMessageReceived -= OnWebMessageReceived;
     }
 
-    /// <summary>限长视图流：底层流的 [Position, Position+length) 窗口，Content-Length 与实际可读字节严格一致。</summary>
+    /// <summary>限长视图流：底层流的 [Position, Position+length) 窗口。</summary>
     private sealed class SubStream : Stream
     {
         private readonly Stream _underlying;
@@ -171,5 +216,11 @@ public partial class AudioWebHost : WebViewHostBase
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing) _underlying.Dispose();
+            base.Dispose(disposing);
+        }
     }
 }

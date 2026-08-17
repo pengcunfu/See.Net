@@ -1,4 +1,4 @@
-namespace See.Net.Services;
+﻿namespace See.Services;
 
 /// <summary>通过 Shell.Application COM 获取资源管理器窗口当前选中的文件。</summary>
 public sealed class ExplorerSelectionService

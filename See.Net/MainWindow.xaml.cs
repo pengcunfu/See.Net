@@ -1,4 +1,4 @@
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -6,12 +6,12 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Input;
 using System.Windows.Media;
 using ICSharpCode.AvalonEdit;
-using See.Net.Controls;
+using See.Controls;
 using See.Net.Core;
-using See.Net.Services;
-using See.Net.ViewModels;
+using See.Services;
+using See.ViewModels;
 
-namespace See.Net;
+namespace See;
 
 public partial class MainWindow : Window
 {

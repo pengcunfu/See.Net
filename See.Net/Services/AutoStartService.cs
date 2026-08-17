@@ -1,6 +1,6 @@
-using System.IO;
+﻿using System.IO;
 
-namespace See.Net.Services;
+namespace See.Services;
 
 /// <summary>通过启动文件夹快捷方式实现随 Windows 启动（MSIX 下注册表 Run 会被虚拟化，故用 LNK）。</summary>
 public static class AutoStartService

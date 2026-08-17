@@ -3,10 +3,10 @@ using System.Windows;
 using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using See.Net.Core;
-using See.Net.Services;
-using See.Net.ViewModels;
+using See.Services;
+using See.ViewModels;
 
-namespace See.Net;
+namespace See;
 
 public partial class App : Application
 {
@@ -257,6 +257,7 @@ public partial class App : Application
         }
     }
 }
+
 
 
 
