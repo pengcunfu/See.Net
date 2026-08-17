@@ -1,4 +1,4 @@
-using System.Windows;
+﻿using System.Windows;
 using System.Windows.Input;
 using See.Net.ViewModels;
 
@@ -33,14 +33,6 @@ public partial class ShellPreviewWindow : Window
     }
 
     private void OnCloseClick(object sender, RoutedEventArgs e) => ClosePreview();
-
-    private void OnTitleBarDrag(object sender, MouseButtonEventArgs e)
-    {
-        if (e.ClickCount == 1)
-        {
-            DragMove();
-        }
-    }
 
     public void ClosePreview()
     {
