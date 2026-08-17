@@ -42,6 +42,26 @@ public partial class ShellPreviewWindow : Window
         }
     }
 
+    private void OnTogglePin(object sender, RoutedEventArgs e)
+    {
+        Topmost = !Topmost;
+        UpdatePinButton();
+    }
+
+    private void UpdatePinButton()
+    {
+        if (Topmost)
+        {
+            PinButton.Content = "&#xE840;"; // 置顶图标
+            PinButton.ToolTip = "取消置顶";
+        }
+        else
+        {
+            PinButton.Content = "&#xE718;"; // 非置顶图标
+            PinButton.ToolTip = "切换置顶";
+        }
+    }
+
     public void ClosePreview()
     {
         Vm?.DisposeContent();
