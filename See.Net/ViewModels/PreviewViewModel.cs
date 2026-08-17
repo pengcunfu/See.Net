@@ -1,4 +1,5 @@
 using System.IO;
+using System.Text;
 using System.Windows;
 using System.Windows.Media.Imaging;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -40,6 +41,7 @@ public partial class PreviewViewModel : ObservableObject
     {
         TextContentViewModel t => t.IsDirty,
         HexContentViewModel h => h.IsDirty,
+        MarkdownContentViewModel m => m.Source.IsDirty,
         _ => false,
     };
 
@@ -66,6 +68,18 @@ public partial class PreviewViewModel : ObservableObject
                 break;
             case ContentKind.Image:
                 LoadImage(file);
+                break;
+            case ContentKind.Document:
+                LoadOffice(file);
+                break;
+            case ContentKind.Markdown:
+                await LoadMarkdownAsync(file);
+                break;
+            case ContentKind.WebPage:
+                await LoadWebAsync(file);
+                break;
+            case ContentKind.Audio:
+                LoadAudio(file);
                 break;
             case ContentKind.Binary:
                 LoadHex(file);
@@ -117,6 +131,11 @@ public partial class PreviewViewModel : ObservableObject
                     save.Execute(null);
                     if (save.ExecutionTask is not null) await save.ExecutionTask;
                     break;
+                case MarkdownContentViewModel m:
+                    var mdSave = m.Source.SaveCommand;
+                    mdSave.Execute(null);
+                    if (mdSave.ExecutionTask is not null) await mdSave.ExecutionTask;
+                    break;
                 case HexContentViewModel h:
                     h.SaveCommand.Execute(null);
                     break;
@@ -132,10 +151,21 @@ public partial class PreviewViewModel : ObservableObject
     public void CloseDocument()
     {
         if (Content is HexContentViewModel hex) hex.Dispose();
+        if (Content is OfficeContentViewModel office) office.Dispose();
+        if (Content is MarkdownContentViewModel markdown) markdown.Dispose();
+        if (Content is WebContentViewModel web) web.Dispose();
         Content = null;
     }
 
     private async Task LoadTextAsync(FileEntry file)
+    {
+        var loaded = await TryReadTextAsync(file, "文本加载失败");
+        if (loaded is not null)
+            Content = new TextContentViewModel(file.FullPath, loaded.Value.text, loaded.Value.encoding, _backup);
+    }
+
+    /// <summary>文本类加载共用：大小守卫 + 字节读取 + 编码检测；失败时置 Info 内容并返回 null。</summary>
+    private async Task<(string text, Encoding encoding)?> TryReadTextAsync(FileEntry file, string errorTitle)
     {
         try
         {
@@ -147,17 +177,17 @@ public partial class PreviewViewModel : ObservableObject
                     $"文件大小 {FileEntry.FormatSize(length)}，超过文本预览上限 {FileEntry.FormatSize(MaxTextPreviewBytes)}。请使用十六进制编辑器查看或编辑。",
                     "以十六进制打开",
                     () => LoadHex(file));
-                return;
+                return null;
             }
 
             var bytes = await Task.Run(() => File.ReadAllBytes(file.FullPath));
             var encoding = EncodingService.Detect(bytes);
-            string text = encoding.GetString(bytes);
-            Content = new TextContentViewModel(file.FullPath, text, encoding, _backup);
+            return (encoding.GetString(bytes), encoding);
         }
         catch (Exception ex)
         {
-            Content = new InfoContentViewModel("文本加载失败", ex.Message);
+            Content = new InfoContentViewModel(errorTitle, ex.Message);
+            return null;
         }
     }
 
@@ -178,5 +208,46 @@ public partial class PreviewViewModel : ObservableObject
         {
             Content = new InfoContentViewModel("图片加载失败", ex.Message);
         }
+    }
+
+    /// <summary>Office 文档：结构化解析由视图模型后台执行，网页引擎按需启动。</summary>
+    private void LoadOffice(FileEntry file)
+    {
+        Content = new OfficeContentViewModel(file.FullPath);
+    }
+
+    /// <summary>Markdown：源码复用文本编辑栈，渲染经 Markdig 后由 WebView2 承载。</summary>
+    private async Task LoadMarkdownAsync(FileEntry file)
+    {
+        var loaded = await TryReadTextAsync(file, "Markdown 加载失败");
+        if (loaded is null) return;
+
+        var source = new TextContentViewModel(file.FullPath, loaded.Value.text, loaded.Value.encoding, _backup);
+        var vm = new MarkdownContentViewModel(file.FullPath, source, Views.WebViewHostBase.IsRuntimeAvailable());
+        await vm.RenderAsync(); // 先渲染，视图进入时 Html 已就绪
+        Content = vm;
+    }
+
+    /// <summary>本地网页：WebView2 目录映射渲染（脚本启用），可切只读源码。</summary>
+    private async Task LoadWebAsync(FileEntry file)
+    {
+        var vm = new WebContentViewModel(file.FullPath, Views.WebViewHostBase.IsRuntimeAvailable(), _backup);
+        Content = vm;
+        await Task.CompletedTask;
+    }
+
+    /// <summary>音频：WebView2 播放页；运行时缺失降级为提示卡片。</summary>
+    private void LoadAudio(FileEntry file)
+    {
+        if (!Views.WebViewHostBase.IsRuntimeAvailable())
+        {
+            Content = new InfoContentViewModel(
+                "音频预览需要 WebView2 运行时",
+                "未检测到 WebView2 运行时，无法播放音频。可安装 Evergreen 运行时后重试，或以十六进制查看文件头。",
+                "以十六进制打开",
+                () => LoadHex(file));
+            return;
+        }
+        Content = new AudioContentViewModel(file.FullPath, file.Name, file.Length);
     }
 }

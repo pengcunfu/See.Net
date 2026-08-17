@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Office 预览</title>
+<link rel="stylesheet" href="lib/pptxjs.css">
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: #fafafa; color: #1a1a1a;
+  }
+  #status {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; color: #666; font-size: 14px; gap: 8px;
+  }
+  #status.error { color: #b91c1c; white-space: pre-wrap; padding: 24px; text-align: center; }
+  #container { height: 100%; overflow: auto; }
+  #container.hidden { display: none; }
+  .spinner {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 3px solid #d1d5db; border-top-color: #2563eb;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* mammoth 输出的文档样式 */
+  #container.docx { padding: 32px 48px; background: #fff; }
+  #container.docx img { max-width: 100%; }
+  #container.docx table { border-collapse: collapse; margin: 8px 0; }
+  #container.docx td, #container.docx th { border: 1px solid #d1d5db; padding: 4px 8px; }
+
+  /* SheetJS 输出的表格样式 */
+  #container.xlsx { padding: 0; }
+  #container.xlsx table { border-collapse: collapse; font-size: 13px; }
+  #container.xlsx td, #container.xlsx th {
+    border: 1px solid #e5e7eb; padding: 3px 8px; min-width: 48px;
+    white-space: nowrap; max-width: 360px; overflow: hidden; text-overflow: ellipsis;
+  }
+  #container.xlsx th { background: #f3f4f6; position: sticky; top: 0; }
+  #container.xlsx tr:first-child td { background: #f9fafb; }
+
+  /* PPTXjs 容器 */
+  #container.pptx { padding: 16px; }
+  #container.pptx .slide { margin: 0 auto 24px; box-shadow: 0 2px 8px rgba(0,0,0,.12); background: #fff; }
+</style>
+</head>
+<body>
+  <div id="status"><div class="spinner"></div><span>正在解析文档…</span></div>
+  <div id="container" class="hidden"></div>
+
+  <script src="lib/jquery-1.11.3.min.js"></script>
+  <script src="lib/jszip.min.js"></script>
+  <script src="lib/mammoth.browser.min.js"></script>
+  <script src="lib/xlsx.full.min.js"></script>
+  <script src="lib/pptxjs.min.js"></script>
+  <script src="office-preview.js"></script>
+</body>
+</html>

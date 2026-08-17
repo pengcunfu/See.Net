@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Markdown 预览</title>
+<!-- 注意：本页在 ?base= 存在时会插入 <base>，所有资产引用必须写绝对地址，避免被 base 带偏 -->
+<link rel="stylesheet" href="https://officeline.local/markdown.css">
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: #fff;
+  }
+  #status {
+    display: flex; align-items: center; justify-content: center;
+    height: 100%; color: #666; font-size: 14px; gap: 8px;
+  }
+  #status.error { color: #b91c1c; white-space: pre-wrap; padding: 24px; text-align: center; }
+  .spinner {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 3px solid #d1d5db; border-top-color: #2563eb;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div id="status"><div class="spinner"></div><span>正在渲染…</span></div>
+<div id="container"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var statusEl = document.getElementById("status");
+  var container = document.getElementById("container");
+
+  function reportError(message) {
+    try {
+      window.chrome.webview.postMessage({ type: "error", message: String(message) });
+    } catch (_) { /* 宿主可能已释放 */ }
+    statusEl.className = "error";
+    statusEl.textContent = "渲染失败：" + message;
+  }
+
+  // md 所在目录经宿主映射为 mdcontent.local，插入 <base> 让相对图片按原目录解析
+  var base = new URLSearchParams(location.search).get("base");
+  if (base) {
+    var tag = document.createElement("base");
+    tag.href = "https://mdcontent.local/" + decodeURIComponent(base) + "/";
+    document.head.appendChild(tag);
+  }
+
+  fetch("data", { cache: "no-store" })
+    .then(function (res) {
+      if (!res.ok) throw new Error("拉取渲染结果失败（HTTP " + res.status + "）");
+      return res.text();
+    })
+    .then(function (html) {
+      container.innerHTML = html;
+      statusEl.style.display = "none";
+    })
+    .catch(function (err) {
+      reportError(err && err.message ? err.message : err);
+    });
+})();
+</script>
+</body>
+</html>

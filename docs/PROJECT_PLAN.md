@@ -224,3 +224,48 @@ See.Net.Tests/                   # xUnit 单元测试
 | 数据目录 | 用户文档目录下 `See.Net`（设置、备份、日志） |
 
 当前进度：M1 至 M7 已全部实现并通过构建与单元测试，MSIX 打包脚本已产出可安装包。
+
+## 13. Office 双引擎预览（2026-08 增补）
+
+### 方案
+
+Office（Word / Excel / PPT）文档预览采用双引擎并存、一键切换：
+
+| 引擎 | 实现 | 定位 |
+| --- | --- | --- |
+| 结构化视图（默认） | `See.Net.Core/Office`：DocumentFormat.OpenXml 3.5.1 解析 docx/xlsx/pptx；自研 RTF 字节级 tokenizer、ODF（zip + content.xml）读取器 | 秒开、离线、可单测；Excel SAX 流式读取 + 1 万行/表上限 |
+| 网页渲染视图 | WebView2（虚拟主机映射 webassets）+ 离线内嵌 mammoth 1.12.1（docx）/ SheetJS 0.20.3（xlsx、旧 xls）/ PPTXjs 1.21.1（pptx，尽力渲染） | 高保真排版；文件字节经 WebResourceRequested 拦截流式回吐，不经 base64 消息 |
+
+### 边界
+
+- 预览只读，不进入编辑/保存链路。
+- 旧版 .doc / .ppt（OLE2 二进制）两种引擎均不支持 → 提示卡片 + 十六进制兜底；.xls 由 SheetJS 兜底（仅网页视图）。
+- WebView2 运行时缺失时结构化视图不受影响，仅网页模式降级；MSIX 包内 WebView2 userDataFolder 显式指向 `%LOCALAPPDATA%\See.Net\WebView2`。
+- JS 渲染库经 `scripts/fetch-office-libs.ps1` 固定版本 + SHA-256 校验拉取，随包分发（许可合规见 NOTICE）。
+
+### 状态
+
+已完成：Core 解析层与 42 项单元测试（含 docx/xlsx/pptx 生成断言、RTF GBK 十六进制转义、ODF zip 构造、大表截断）、渲染页与拉取脚本、OfficeContentViewModel / OfficeView / OfficeWebHost 双引擎切换、PreviewPane 模板注册、README/本计划更新。
+
+## 14. Markdown / 网页 / 音频预览（2026-08 增补）
+
+### 方案
+
+三类新预览沿用「ContentKind 分发 + DataTemplate 映射」链路；WebView2 侧把原 OfficeWebHost 抽取为 `WebViewHostBase` 基类（共享运行时探测、环境创建、生命周期），四个宿主（Office / Markdown / Html / Audio）均为薄子类。
+
+| 类型 | 实现 | 要点 |
+| --- | --- | --- |
+| Markdown | Markdig 1.3.2（Core 层，MIT）渲染 HTML → WebView2 容器页 + 自研 GitHub 风格离线 CSS | 默认渲染视图；源码模式组合 TextContentViewModel（编辑 / 保存 / 编码全套复用）；`DisableHtml()` 转义原始 HTML；md 所在目录映射为 mdcontent.local（相对图片解析）；渲染上限 200 万字符 |
+| 网页 | WebView2 文件所在目录映射 preview.local + 直接导航映射 URL | 脚本启用（用户决策）；相对引用天然按原目录解析；顶级导航 / 新窗口一律外部浏览器；只读源码懒加载（TextContentViewModel `allowEdit:false`） |
+| 音频 | WebView2 自研播放页（无第三方 JS）+ /data 拦截 | 实现 HTTP Range（206 + Content-Range + 限长 SubStream）供 Chromium 媒体栈 seek；播放 / 进度 / 音量 / 倍速 / 循环；元数据（时长 / 大小 / 近似比特率） |
+
+### 边界
+
+- Markdown 内嵌原始 HTML 被转义为文本（预览任意来源文件不执行脚本）；超限或运行时缺失自动落源码模式。
+- 网页预览等同在浏览器打开不受信页面（脚本可读同目录文件并外发）；映射生命周期 = 预览实例，顶级导航与新窗口一律外开。文件名含 `#` / `?` 时渲染不可用，自动切源码。
+- 音频编解码取决于 WebView2 内核：WMA / AIFF / MIDI 不支持（error 上报后降级提示卡片），mp3 / wav / flac / ogg / m4a 支持。运行时缺失时降级为提示卡片（附十六进制入口）。
+- 新增 Core 纯逻辑与单测：MarkdownRenderer（转义 / 超限）、RangeSpec（单区间解析），FileTypeDetector 新增 Markdown / WebPage / Audio 三分类。
+
+### 状态
+
+已完成：WebViewHostBase 抽取与 OfficeWebHost 派生化、Core 三分类与 Markdig/RangeRequest 及 14 项新单测（合计 60 项全绿）、Markdown/Web/Audio 三组 VM + 宿主 + 视图、webassets 新增 markdown-preview / markdown.css / audio-player（全部自研无新增第三方 JS）、PreviewPane 与 ShellPreviewWindow 模板注册（顺带补齐 Shell 侧缺失的 Office 模板）、README / NOTICE / 本计划更新。

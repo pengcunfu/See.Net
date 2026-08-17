@@ -7,6 +7,10 @@ public enum ContentKind
     Code,
     Binary,
     Image,
+    Document,
+    Markdown,
+    WebPage,
+    Audio,
     Unknown,
 }
 
@@ -28,6 +32,10 @@ public sealed class FileEntry
         ContentKind.Code => "代码",
         ContentKind.Binary => "二进制",
         ContentKind.Image => "图片",
+        ContentKind.Document => "文档",
+        ContentKind.Markdown => "Markdown",
+        ContentKind.WebPage => "网页",
+        ContentKind.Audio => "音频",
         _ => IsDirectory ? "文件夹" : "未知",
     };
 
@@ -36,6 +44,8 @@ public sealed class FileEntry
     {
         ContentKind.Image => "\uEB9F",
         ContentKind.Code => "\uE943",
+        ContentKind.WebPage => "\uE774", // Globe
+        ContentKind.Audio => "\uE90B",   // MusicInfo
         _ => "\uE8A5",
     };
 

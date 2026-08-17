@@ -7,7 +7,7 @@ public static class FileTypeDetector
 {
     private static readonly HashSet<string> CodeExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".cs", ".csx", ".ts", ".js", ".tsx", ".jsx", ".json", ".xml", ".html", ".htm", ".css", ".scss",
+        ".cs", ".csx", ".ts", ".js", ".tsx", ".jsx", ".json", ".xml", ".css", ".scss",
         ".less", ".py", ".java", ".kt", ".c", ".cpp", ".cc", ".h", ".hpp", ".go", ".rs", ".rb", ".php",
         ".sql", ".yml", ".yaml", ".toml", ".ini", ".sh", ".bat", ".cmd", ".ps1", ".psm1", ".vb", ".fs",
         ".fsx", ".proto", ".svg", ".xaml", ".axaml", ".razor", ".cshtml", ".vue", ".svelte", ".lua",
@@ -16,9 +16,24 @@ public static class FileTypeDetector
 
     private static readonly HashSet<string> TextExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".txt", ".md", ".markdown", ".log", ".csv", ".tsv", ".text", ".license", ".gitignore",
+        ".txt", ".log", ".csv", ".tsv", ".text", ".license", ".gitignore",
         ".gitattributes", ".editorconfig", ".dockerignore", ".env", ".conf", ".cfg", ".properties",
         ".gitmodules", ".nuspec", ".targets", ".props", ".sln", ".csproj", ".vcxproj", ".pubxml",
+    };
+
+    private static readonly HashSet<string> MarkdownExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".md", ".markdown", ".mdown", ".mkd",
+    };
+
+    private static readonly HashSet<string> WebPageExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".html", ".htm", ".xhtml",
+    };
+
+    private static readonly HashSet<string> AudioExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".mp3", ".wav", ".flac", ".ogg", ".oga", ".m4a", ".aac", ".wma", ".opus", ".aif", ".aiff",
     };
 
     private static readonly HashSet<string> ImageExtensions = new(StringComparer.OrdinalIgnoreCase)
@@ -26,13 +41,19 @@ public static class FileTypeDetector
         ".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp", ".tif", ".tiff", ".ico", ".jfif",
     };
 
+    private static readonly HashSet<string> DocumentExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".doc", ".docx", ".docm", ".xls", ".xlsx", ".xlsm", ".ppt", ".pptx", ".pptm",
+        ".rtf", ".odt", ".ods", ".odp",
+    };
+
     private static readonly HashSet<string> BinaryExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".exe", ".dll", ".sys", ".bin", ".dat", ".iso", ".img", ".zip", ".7z", ".rar", ".gz", ".tar",
-        ".xz", ".bz2", ".pdf", ".doc", ".docx", ".xls", ".xlsx", ".ppt", ".pptx", ".mp3", ".mp4",
-        ".mkv", ".avi", ".wav", ".flac", ".ogg", ".wma", ".wmv", ".mov", ".flv", ".m4a", ".aac",
-        ".pak", ".so", ".a", ".lib", ".obj", ".pdb", ".db", ".sqlite", ".mdb", ".dmp", ".msi",
-        ".cab", ".jar", ".apk", ".ipa", ".nupkg", ".whl", ".class", ".pyc", ".o", ".ko", ".efi",
+        ".xz", ".bz2", ".pdf", ".mp4", ".mkv", ".avi", ".wmv",
+        ".mov", ".flv", ".pak", ".so", ".a", ".lib", ".obj", ".pdb", ".db", ".sqlite",
+        ".mdb", ".dmp", ".msi", ".cab", ".jar", ".apk", ".ipa", ".nupkg", ".whl", ".class", ".pyc",
+        ".o", ".ko", ".efi",
     };
 
     public static ContentKind Detect(string path, bool readContent = true)
@@ -57,7 +78,11 @@ public static class FileTypeDetector
         if (string.IsNullOrWhiteSpace(extension)) return ContentKind.Unknown;
         if (CodeExtensions.Contains(extension)) return ContentKind.Code;
         if (TextExtensions.Contains(extension)) return ContentKind.Text;
+        if (MarkdownExtensions.Contains(extension)) return ContentKind.Markdown;
+        if (WebPageExtensions.Contains(extension)) return ContentKind.WebPage;
         if (ImageExtensions.Contains(extension)) return ContentKind.Image;
+        if (DocumentExtensions.Contains(extension)) return ContentKind.Document;
+        if (AudioExtensions.Contains(extension)) return ContentKind.Audio;
         if (BinaryExtensions.Contains(extension)) return ContentKind.Binary;
         return ContentKind.Unknown;
     }
@@ -87,6 +112,13 @@ public static class FileTypeDetector
             return ContentKind.Binary;
         if (head.Length >= 4 && head[0] == 0x50 && head[1] == 0x4B && (head[2] == 0x03 || head[2] == 0x05 || head[2] == 0x07))
             return ContentKind.Binary;
+        // OLE 复合文档（旧版 Word / Excel / PowerPoint，及 ODF）
+        if (head.Length >= 8 && head[0] == 0xD0 && head[1] == 0xCF && head[2] == 0x11 && head[3] == 0xE0
+            && head[4] == 0xA1 && head[5] == 0xB1 && head[6] == 0x1A && head[7] == 0xE1)
+            return ContentKind.Document;
+        if (head.Length >= 5 && head[0] == (byte)'{' && head[1] == (byte)'\\' && head[2] == (byte)'r'
+            && head[3] == (byte)'t' && head[4] == (byte)'f')
+            return ContentKind.Document;
         if (head.Length >= 4 && head[0] == 0x7F && head[1] == 0x45 && head[2] == 0x4C && head[3] == 0x46)
             return ContentKind.Binary;
         if (head.Length >= 4 && head[0] == 0x37 && head[1] == 0x7A && head[2] == 0xBC && head[3] == 0xAF)

@@ -13,11 +13,19 @@ public partial class App : Application
     private ServiceProvider? _services;
     private TrayIconService? _tray;
     private ShellPreviewService? _shellPreview;
+    private SingleInstanceService? _singleton;
     private MainWindow? _mainWindow;
+    private SettingsWindow? _settingsWindow;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // 单例：后续实例转发参数后立即退出，不创建窗口/托盘/全局键盘钩子
+        _singleton = SingleInstanceService.Acquire(e.Args, Dispatcher);
+        if (_singleton is null) { Shutdown(); return; }
+        _singleton.FileOpened += OnFileOpenedFromPipe;
+
         AppPaths.EnsureCreated();
 
         DispatcherUnhandledException += OnDispatcherUnhandledException;
@@ -39,40 +47,39 @@ public partial class App : Application
         MainWindow = window;
         _mainWindow = window;
 
-        // 系统托盘：后台常驻与退出入口
-        _tray = new TrayIconService(ShowMainWindow, ExitApplication);
+        // 系统托盘：后台常驻、设置与退出入口
+        _tray = new TrayIconService(ShowMainWindow, OpenSettings, ExitApplication);
         window.ConfigureTray(_tray);
 
         // 资源管理器空格预览：全局键盘钩子
         _shellPreview = new ShellPreviewService(settings, backup, Dispatcher);
         _shellPreview.Start();
 
-        // 随 Windows 启动（启动文件夹快捷方式，MSIX 下注册表 Run 会被虚拟化）
+        // 随 Windows 启动（启动文件夹快捷方式，MSIX 下注册表 Run 会被虚拟化）。
+        // 按实际状态回写设置：自愈失效快捷方式（应用被移动 / MSIX 重装后 LNK 指向旧路径）。
         AutoStartService.Apply(settings.Current.AutoStartEnabled);
+        bool actual = AutoStartService.IsEnabled();
+        if (actual != settings.Current.AutoStartEnabled)
+        {
+            settings.Current.AutoStartEnabled = actual;
+            settings.Save();
+        }
 
         window.Show();
         _ = vm.InitializeAsync();
 
-        // 命令行参数：以 See.Net 打开指定文件
+        // 命令行参数：以 See.Net 打开指定文件（与单例转发共用同一逻辑）
         if (e.Args.Length > 0 && File.Exists(e.Args[0]))
         {
             window.Show();
             window.Activate();
-            var fi = new FileInfo(e.Args[0]);
-            var entry = new FileEntry
-            {
-                Name = fi.Name,
-                FullPath = fi.FullName,
-                Length = fi.Length,
-                LastWriteTime = fi.LastWriteTime,
-                Kind = FileTypeDetector.Detect(fi.FullName),
-            };
-            _ = vm.OpenPreviewFileAsync(entry);
+            _ = OpenFilePathAsync(e.Args[0]);
         }
     }
 
     protected override void OnExit(ExitEventArgs e)
     {
+        try { _singleton?.Dispose(); } catch { }
         try { _shellPreview?.Dispose(); } catch { }
         try { _tray?.Dispose(); } catch { }
         _services?.Dispose();
@@ -97,6 +104,48 @@ public partial class App : Application
         _mainWindow.Show();
         _mainWindow.WindowState = WindowState.Normal;
         _mainWindow.Activate();
+    }
+
+    /// <summary>单例管道转发：展示主窗口，非空 payload 则打开对应文件。</summary>
+    private void OnFileOpenedFromPipe(string payload)
+    {
+        DoShowMainWindow();
+        if (string.IsNullOrWhiteSpace(payload)) return;
+        _ = OpenFilePathAsync(payload);
+    }
+
+    /// <summary>导航到文件所在目录并打开预览（addHistory:false，避免污染后退栈）。</summary>
+    private async Task OpenFilePathAsync(string path)
+    {
+        if (!File.Exists(path)) return;
+        var fi = new FileInfo(path);
+        var entry = new FileEntry
+        {
+            Name = fi.Name,
+            FullPath = fi.FullName,
+            Length = fi.Length,
+            LastWriteTime = fi.LastWriteTime,
+            Kind = FileTypeDetector.Detect(fi.FullName),
+        };
+        var vm = _services!.GetRequiredService<MainViewModel>();
+        string? dir = FileSystemService.GetParent(entry.FullPath);
+        if (!string.IsNullOrEmpty(dir)) await vm.NavigateToAsync(dir, addHistory: false);
+        await vm.OpenPreviewFileAsync(entry);
+    }
+
+    /// <summary>打开设置窗口（单实例复用，关闭后重建）。</summary>
+    private void OpenSettings()
+    {
+        if (_services is null) return;
+        if (_settingsWindow is null)
+        {
+            var settings = _services.GetRequiredService<SettingsService>();
+            _settingsWindow = new SettingsWindow(settings);
+            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+        }
+        _settingsWindow.Show();
+        _settingsWindow.Activate();
+        _settingsWindow.WindowState = WindowState.Normal;
     }
 
     private void ExitApplication()

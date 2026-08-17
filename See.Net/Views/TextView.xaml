@@ -10,9 +10,11 @@
 
         <Border Grid.Row="0" Background="#F7F7F7" BorderBrush="#E0E0E0" BorderThickness="0,0,0,1" Padding="8,4">
             <StackPanel Orientation="Horizontal">
-                <ToggleButton Content="编辑模式" IsChecked="{Binding IsEditMode}" Padding="10,3" Margin="0,0,8,0"/>
-                <Button Content="保存" Command="{Binding SaveCommand}" IsEnabled="{Binding IsDirty}"
-                        Padding="12,3" Margin="0,0,8,0" FontWeight="SemiBold"/>
+                <StackPanel x:Name="EditControls" Orientation="Horizontal">
+                    <ToggleButton Content="编辑模式" IsChecked="{Binding IsEditMode}" Padding="10,3" Margin="0,0,8,0"/>
+                    <Button Content="保存" Command="{Binding SaveCommand}" IsEnabled="{Binding IsDirty}"
+                            Padding="12,3" Margin="0,0,8,0" FontWeight="SemiBold"/>
+                </StackPanel>
                 <ComboBox ItemsSource="{Binding Encodings}" SelectedItem="{Binding SelectedEncoding}"
                           Width="150" Margin="0,0,8,0" ToolTip="编码"/>
                 <ToggleButton Content="自动换行" IsChecked="{Binding WordWrap}" Padding="10,3"/>

@@ -29,6 +29,39 @@ public sealed class FileTypeDetectorTests : IDisposable
     }
 
     [Fact]
+    public void Detect_New_Kinds_By_Extension()
+    {
+        Assert.Equal(ContentKind.Markdown, FileTypeDetector.ByExtension(".md"));
+        Assert.Equal(ContentKind.Markdown, FileTypeDetector.ByExtension(".MD"));
+        Assert.Equal(ContentKind.Markdown, FileTypeDetector.ByExtension(".markdown"));
+        Assert.Equal(ContentKind.Markdown, FileTypeDetector.ByExtension(".mkd"));
+
+        Assert.Equal(ContentKind.WebPage, FileTypeDetector.ByExtension(".html"));
+        Assert.Equal(ContentKind.WebPage, FileTypeDetector.ByExtension(".HTML"));
+        Assert.Equal(ContentKind.WebPage, FileTypeDetector.ByExtension(".htm"));
+        Assert.Equal(ContentKind.WebPage, FileTypeDetector.ByExtension(".xhtml"));
+
+        Assert.Equal(ContentKind.Audio, FileTypeDetector.ByExtension(".mp3"));
+        Assert.Equal(ContentKind.Audio, FileTypeDetector.ByExtension(".wav"));
+        Assert.Equal(ContentKind.Audio, FileTypeDetector.ByExtension(".flac"));
+        Assert.Equal(ContentKind.Audio, FileTypeDetector.ByExtension(".ogg"));
+        Assert.Equal(ContentKind.Audio, FileTypeDetector.ByExtension(".m4a"));
+        Assert.Equal(ContentKind.Audio, FileTypeDetector.ByExtension(".wma"));
+    }
+
+    [Fact]
+    public void Detect_Old_Kinds_Unaffected_By_Split()
+    {
+        // 从旧集合移出的扩展名之外，原有分类保持不变
+        Assert.Equal(ContentKind.Code, FileTypeDetector.ByExtension(".svg"));
+        Assert.Equal(ContentKind.Code, FileTypeDetector.ByExtension(".xml"));
+        Assert.Equal(ContentKind.Text, FileTypeDetector.ByExtension(".log"));
+        Assert.Equal(ContentKind.Binary, FileTypeDetector.ByExtension(".mp4"));
+        Assert.Equal(ContentKind.Binary, FileTypeDetector.ByExtension(".zip"));
+        Assert.Equal(ContentKind.Image, FileTypeDetector.ByExtension(".webp"));
+    }
+
+    [Fact]
     public void Detect_By_Magic_Bytes()
     {
         Assert.Equal(ContentKind.Image, FileTypeDetector.ByMagic([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]));

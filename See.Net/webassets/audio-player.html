@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>音频预览</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    font-family: "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: #fafafa; color: #1a1a1a;
+  }
+  .stage {
+    min-height: 100%;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 32px;
+  }
+  .card {
+    width: min(560px, 100%);
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 28px;
+    box-shadow: 0 2px 10px rgba(0,0,0,.06);
+  }
+  .glyph {
+    width: 88px; height: 88px;
+    margin: 0 auto 18px;
+    border-radius: 50%;
+    background: #eef2ff;
+    display: flex; align-items: center; justify-content: center;
+    color: #4338ca; font-size: 38px;
+  }
+  .name {
+    font-size: 16px; font-weight: 600;
+    text-align: center;
+    word-break: break-all;
+    margin-bottom: 4px;
+  }
+  .meta {
+    font-size: 12px; color: #6b7280;
+    text-align: center; margin-bottom: 22px;
+  }
+  input[type="range"] {
+    -webkit-appearance: none; appearance: none;
+    width: 100%; height: 6px; border-radius: 3px;
+    background: #e5e7eb; outline: none; cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 14px; height: 14px; border-radius: 50%;
+    background: #2563eb; border: none;
+  }
+  input[type="range"]:disabled::-webkit-slider-thumb { background: #9ca3af; }
+  .times {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: #6b7280;
+    font-variant-numeric: tabular-nums;
+    margin-top: 4px;
+  }
+  .controls {
+    display: flex; align-items: center; justify-content: center;
+    gap: 18px; margin-top: 18px;
+  }
+  button {
+    border: 1px solid #d1d5db; background: #fff;
+    border-radius: 8px; padding: 6px 14px;
+    font-size: 13px; color: #374151; cursor: pointer;
+  }
+  button:hover:not(:disabled) { background: #f3f4f6; }
+  button:disabled { opacity: .5; cursor: default; }
+  button.play {
+    width: 52px; height: 52px; border-radius: 50%;
+    font-size: 20px; padding: 0;
+    background: #2563eb; border-color: #2563eb; color: #fff;
+  }
+  button.play:hover:not(:disabled) { background: #1d4ed8; }
+  .row {
+    display: flex; align-items: center; gap: 10px;
+    margin-top: 20px; font-size: 12px; color: #6b7280;
+  }
+  .row .grow { flex: 1; }
+  .row input[type="range"] { height: 4px; }
+  select {
+    border: 1px solid #d1d5db; border-radius: 6px;
+    padding: 3px 6px; font-size: 12px; background: #fff; color: #374151;
+  }
+  .error {
+    display: none;
+    margin-top: 18px;
+    background: #fef2f2; border: 1px solid #fecaca;
+    color: #b91c1c; border-radius: 8px;
+    padding: 10px 14px; font-size: 13px;
+    text-align: center; white-space: pre-wrap;
+  }
+  .spinner {
+    width: 22px; height: 22px; border-radius: 50%;
+    border: 3px solid #d1d5db; border-top-color: #2563eb;
+    animation: spin .8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="card">
+    <div class="glyph">&#xE90B;</div>
+    <div class="name" id="name"></div>
+    <div class="meta" id="meta">正在读取…</div>
+
+    <input type="range" id="seek" min="0" max="1000" value="0" step="1" disabled>
+    <div class="times"><span id="cur">0:00</span><span id="dur">--:--</span></div>
+
+    <div class="controls">
+      <button id="back" title="后退 5 秒">&#xE772; 5s</button>
+      <button id="play" class="play" title="播放 / 暂停">&#xE768;</button>
+      <button id="fwd" title="前进 5 秒">5s &#xE773;</button>
+    </div>
+
+    <div class="row">
+      <span>音量</span>
+      <input type="range" id="vol" class="grow" min="0" max="100" value="100">
+      <select id="rate" title="倍速">
+        <option value="0.75">0.75x</option>
+        <option value="1" selected>1x</option>
+        <option value="1.25">1.25x</option>
+        <option value="1.5">1.5x</option>
+        <option value="2">2x</option>
+      </select>
+      <button id="loop" title="循环播放">循环: 关</button>
+    </div>
+
+    <div class="error" id="error"></div>
+  </div>
+</div>
+
+<audio id="a" src="data" preload="metadata"></audio>
+
+<script>
+(function () {
+  "use strict";
+
+  // Segoe MDL2 Assets 不在此环境直接可用，播放 / 快进按钮字形以文字符号替代
+  var params = new URLSearchParams(location.search);
+  var audio = document.getElementById("a");
+  var els = {
+    name: document.getElementById("name"),
+    meta: document.getElementById("meta"),
+    seek: document.getElementById("seek"),
+    cur: document.getElementById("cur"),
+    dur: document.getElementById("dur"),
+    play: document.getElementById("play"),
+    back: document.getElementById("back"),
+    fwd: document.getElementById("fwd"),
+    vol: document.getElementById("vol"),
+    rate: document.getElementById("rate"),
+    loop: document.getElementById("loop"),
+    error: document.getElementById("error"),
+  };
+
+  var fileName = params.get("name") || "音频文件";
+  var fileSize = params.get("size") || "";
+  els.name.textContent = fileName;
+
+  function reportError(message) {
+    try {
+      window.chrome.webview.postMessage({ type: "error", message: String(message) });
+    } catch (_) { }
+    els.error.style.display = "block";
+    els.error.textContent = message;
+    els.meta.textContent = fileSize ? "大小 " + fileSize : "";
+    els.play.disabled = true;
+    els.seek.disabled = true;
+  }
+
+  function fmt(t) {
+    if (!isFinite(t) || t < 0) return "--:--";
+    var m = Math.floor(t / 60), s = Math.floor(t % 60);
+    return m + ":" + (s < 10 ? "0" : "") + s;
+  }
+
+  function updatePlayButton() {
+    els.play.textContent = audio.paused ? "▶" : "❚❚";
+    els.play.title = audio.paused ? "播放" : "暂停";
+  }
+
+  function updateMeta() {
+    var duration = audio.duration;
+    var bits = [fileName];
+    if (isFinite(duration)) bits.push("时长 " + fmt(duration));
+    if (fileSize) bits.push("大小 " + fileSize);
+    if (isFinite(duration) && duration > 0 && fileSize) {
+      // 近似比特率：文件大小换算不精确（容器开销），标注“约”
+      var m = /^([\d.]+)\s*(B|KB|MB|GB)$/.exec(fileSize);
+      if (m) {
+        var mult = { B: 1, KB: 1024, MB: 1024 * 1024, GB: 1024 * 1024 * 1024 }[m[2]];
+        var kbps = Math.round(parseFloat(m[1]) * mult * 8 / duration / 1000);
+        if (kbps > 0) bits.push("约 " + kbps + " kbps");
+      }
+    }
+    els.meta.textContent = bits.join(" · ");
+  }
+
+  // ---- 事件 ----
+  audio.addEventListener("loadedmetadata", function () {
+    els.seek.disabled = false;
+    els.dur.textContent = fmt(audio.duration);
+    updateMeta();
+  });
+
+  audio.addEventListener("timeupdate", function () {
+    if (!seeking && isFinite(audio.duration) && audio.duration > 0)
+      els.seek.value = Math.round(audio.currentTime / audio.duration * 1000);
+    els.cur.textContent = fmt(audio.currentTime);
+  });
+
+  audio.addEventListener("play", updatePlayButton);
+  audio.addEventListener("pause", updatePlayButton);
+  audio.addEventListener("ended", function () { els.seek.value = 0; });
+
+  audio.addEventListener("error", function () {
+    var code = audio.error ? audio.error.code : 0;
+    if (code === 4 /* MEDIA_ERR_SRC_NOT_SUPPORTED */)
+      reportError("此音频编码 WebView2 媒体栈不支持（如 WMA / AIFF / MIDI），请用系统播放器打开。");
+    else
+      reportError("音频数据读取失败（错误码 " + code + "）。");
+  });
+
+  var seeking = false;
+  els.seek.addEventListener("input", function () { seeking = true; });
+  els.seek.addEventListener("change", function () {
+    if (isFinite(audio.duration) && audio.duration > 0)
+      audio.currentTime = els.seek.value / 1000 * audio.duration;
+    seeking = false;
+  });
+
+  els.play.addEventListener("click", function () {
+    if (audio.paused) audio.play(); else audio.pause();
+  });
+  els.back.addEventListener("click", function () {
+    audio.currentTime = Math.max(0, audio.currentTime - 5);
+  });
+  els.fwd.addEventListener("click", function () {
+    if (isFinite(audio.duration))
+      audio.currentTime = Math.min(audio.duration, audio.currentTime + 5);
+  });
+  els.vol.addEventListener("input", function () { audio.volume = els.vol.value / 100; });
+  els.rate.addEventListener("change", function () { audio.playbackRate = parseFloat(els.rate.value); });
+  els.loop.addEventListener("click", function () {
+    audio.loop = !audio.loop;
+    els.loop.textContent = "循环: " + (audio.loop ? "开" : "关");
+  });
+
+  document.addEventListener("keydown", function (ev) {
+    if (ev.target.tagName === "INPUT" || ev.target.tagName === "SELECT") return;
+    if (ev.code === "Space") { ev.preventDefault(); els.play.click(); }
+  });
+
+  els.meta.textContent = "正在读取…";
+  updatePlayButton();
+})();
+</script>
+</body>
+</html>

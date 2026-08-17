@@ -1,0 +1,35 @@
+<UserControl x:Class="See.Net.Views.MarkdownView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:views="clr-namespace:See.Net.Views">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 渲染 / 源码切换工具条（选中态由代码后置同步） -->
+        <Border Grid.Row="0" Background="#F3F4F6" BorderBrush="#E5E7EB" BorderThickness="0,0,0,1" Padding="10,5">
+            <StackPanel Orientation="Horizontal">
+                <Border Background="#E5E7EB" CornerRadius="5" Padding="2" Margin="0,0,12,0">
+                    <StackPanel Orientation="Horizontal">
+                        <RadioButton x:Name="RenderToggle" Content="渲染" GroupName="mdview"
+                                     Style="{StaticResource EngineToggle}" Padding="12,4"
+                                     Checked="OnRenderToggleChecked"/>
+                        <RadioButton x:Name="SourceToggle" Content="源码" GroupName="mdview"
+                                     Style="{StaticResource EngineToggle}" Padding="12,4"
+                                     Checked="OnSourceToggleChecked"/>
+                    </StackPanel>
+                </Border>
+                <TextBlock Text="{Binding RenderError}" Foreground="#B91C1C" FontSize="11"
+                           TextTrimming="CharacterEllipsis" VerticalAlignment="Center" Margin="0,0,8,0"/>
+            </StackPanel>
+        </Border>
+
+        <!-- 渲染视图（代码后置按需注入 MarkdownWebHost） -->
+        <ContentControl x:Name="WebSlot" Grid.Row="1"/>
+
+        <!-- 源码视图（复用文本编辑栈，编辑 / 保存 / 编码可用） -->
+        <views:TextView x:Name="SourceView" Grid.Row="1" Visibility="Collapsed"/>
+    </Grid>
+</UserControl>

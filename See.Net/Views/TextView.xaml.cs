@@ -29,6 +29,7 @@ public partial class TextView : UserControl
 
         _vm.PropertyChanged += OnVmPropertyChanged;
         Editor.TextChanged += OnEditorTextChanged;
+        EditControls.Visibility = _vm.AllowEdit ? System.Windows.Visibility.Visible : System.Windows.Visibility.Collapsed;
         _loading = true;
         try
         {

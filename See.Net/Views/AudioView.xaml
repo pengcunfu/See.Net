@@ -1,0 +1,19 @@
+<UserControl x:Class="See.Net.Views.AudioView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 错误条（播放页上报后显示） -->
+        <Border x:Name="ErrorBar" Grid.Row="0" Background="#FEF2F2" BorderBrush="#FECACA"
+                BorderThickness="0,0,0,1" Padding="10,6" Visibility="Collapsed">
+            <TextBlock Text="{Binding Error}" Foreground="#B91C1C" FontSize="12" TextWrapping="Wrap"/>
+        </Border>
+
+        <!-- 播放器（代码后置注入 AudioWebHost） -->
+        <ContentControl x:Name="WebSlot" Grid.Row="1"/>
+    </Grid>
+</UserControl>

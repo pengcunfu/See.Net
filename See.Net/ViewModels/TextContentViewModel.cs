@@ -14,10 +14,12 @@ public partial class TextContentViewModel : ObservableObject
     private readonly BackupService _backup;
     private bool _suppressDirty;
 
-    public TextContentViewModel(string filePath, string initialText, Encoding detectedEncoding, BackupService backup)
+    public TextContentViewModel(string filePath, string initialText, Encoding detectedEncoding, BackupService backup,
+        bool allowEdit = true)
     {
         FilePath = filePath;
         _backup = backup;
+        AllowEdit = allowEdit;
         Text = initialText;
         _suppressDirty = true;
         Encodings = EncodingService.Options
@@ -31,6 +33,9 @@ public partial class TextContentViewModel : ObservableObject
     public string FilePath { get; }
     public string Highlighting { get; }
     public IReadOnlyList<EncodingOption> Encodings { get; }
+
+    /// <summary>是否允许进入编辑模式（网页源码等只读场景为 false，隐藏编辑开关与保存）。</summary>
+    public bool AllowEdit { get; }
 
     [ObservableProperty]
     private string _text = "";

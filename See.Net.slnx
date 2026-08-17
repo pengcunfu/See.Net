@@ -1,5 +1,0 @@
-<Solution>
-  <Project Path="See.Net.Core/See.Net.Core.csproj" />
-  <Project Path="See.Net/See.Net.csproj" />
-  <Project Path="See.Net.Tests/See.Net.Tests.csproj" />
-</Solution>
