@@ -10,6 +10,7 @@
     <ApplicationIcon>..\packaging\assets\app.ico</ApplicationIcon>
     <AssemblyName>See</AssemblyName>
     <RootNamespace>See</RootNamespace>
+    <Version>1.0.0</Version>
     <Product>See</Product>
     <Company>See</Company>
     <Copyright>© 2026 See. All rights reserved.</Copyright>
@@ -31,6 +32,10 @@
   <!-- Office 网页预览的离线渲染资产（HTML/JS/CSS 及第三方库） -->
   <ItemGroup>
     <Content Include="webassets\**\*" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="..\docs\feishu.png" Link="Assets\feishu.png" />
   </ItemGroup>
 
   <ItemGroup>

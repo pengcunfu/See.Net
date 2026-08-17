@@ -4,18 +4,20 @@ using System.Windows.Forms;
 
 namespace See.Services;
 
-/// <summary>系统托盘图标：打开文件预览、设置、退出应用。</summary>
+/// <summary>系统托盘图标：打开文件预览、设置、关于、退出应用。</summary>
 public sealed class TrayIconService : IDisposable
 {
     private readonly NotifyIcon _icon;
     private readonly Action _openFile;
     private readonly Action _showSettings;
+    private readonly Action _showAbout;
     private readonly Action _exit;
 
-    public TrayIconService(Action openFile, Action showSettings, Action exit)
+    public TrayIconService(Action openFile, Action showSettings, Action showAbout, Action exit)
     {
         _openFile = openFile;
         _showSettings = showSettings;
+        _showAbout = showAbout;
         _exit = exit;
         _icon = new NotifyIcon
         {
@@ -38,6 +40,7 @@ public sealed class TrayIconService : IDisposable
         var menu = new ContextMenuStrip();
         menu.Items.Add("打开文件预览…", null, (_, _) => _openFile());
         menu.Items.Add("设置", null, (_, _) => _showSettings());
+        menu.Items.Add("关于", null, (_, _) => _showAbout());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("退出", null, (_, _) => _exit());
         _icon.ContextMenuStrip = menu;

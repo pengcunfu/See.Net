@@ -14,6 +14,7 @@ public partial class App : Application
     private ShellPreviewService? _shellPreview;
     private SingleInstanceService? _singleton;
     private SettingsWindow? _settingsWindow;
+    private AboutWindow? _aboutWindow;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -40,8 +41,8 @@ public partial class App : Application
         var settings = _services.GetRequiredService<SettingsService>();
         var backup = _services.GetRequiredService<BackupService>();
 
-        // 系统托盘：打开文件预览、设置与退出
-        _tray = new TrayIconService(OpenFileForPreview, OpenSettings, ExitApplication);
+        // 系统托盘：打开文件预览、设置、关于与退出
+        _tray = new TrayIconService(OpenFileForPreview, OpenSettings, OpenAbout, ExitApplication);
 
         // 资源管理器空格预览：全局键盘钩子
         _shellPreview = new ShellPreviewService(settings, backup, Dispatcher);
@@ -121,6 +122,27 @@ public partial class App : Application
         _settingsWindow.Show();
         _settingsWindow.Activate();
         _settingsWindow.WindowState = WindowState.Normal;
+    }
+
+    /// <summary>打开关于窗口（单实例复用，关闭后重建）。</summary>
+    private void OpenAbout()
+    {
+        if (Dispatcher.CheckAccess())
+            DoOpenAbout();
+        else
+            Dispatcher.Invoke(DoOpenAbout);
+    }
+
+    private void DoOpenAbout()
+    {
+        if (_aboutWindow is null)
+        {
+            _aboutWindow = new AboutWindow();
+            _aboutWindow.Closed += (_, _) => _aboutWindow = null;
+        }
+        _aboutWindow.Show();
+        _aboutWindow.Activate();
+        _aboutWindow.WindowState = WindowState.Normal;
     }
 
     private void ExitApplication()
