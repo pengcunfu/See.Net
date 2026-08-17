@@ -1,4 +1,4 @@
-﻿namespace See.Net.Core.Office;
+namespace See.Net.Core.Office;
 
 /// <summary>办公文档大类。</summary>
 public enum OfficeKind

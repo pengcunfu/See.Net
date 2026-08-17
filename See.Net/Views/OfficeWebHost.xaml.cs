@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using Microsoft.Web.WebView2.Core;
 using See.ViewModels;
 

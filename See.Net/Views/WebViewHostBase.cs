@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using System.Windows;
 using Microsoft.Web.WebView2.Core;
 using WebView2 = Microsoft.Web.WebView2.Wpf.WebView2;
