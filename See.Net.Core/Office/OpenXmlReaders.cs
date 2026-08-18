@@ -134,10 +134,10 @@ internal static class OpenXmlReaders
             // 先读取共享字符串，有大小限制
             var sharedStrings = new List<string>();
             bool sharedTruncated = false;
-            var sharedPart = workbook.SharedStringTablePart;
-            if (sharedPart is not null)
+            var sharedTable = workbook.SharedStringTablePart?.SharedStringTable;
+            if (sharedTable is not null)
             {
-                foreach (var item in sharedPart.SharedStringTable.Elements<SharedStringItem>())
+                foreach (var item in sharedTable.Elements<SharedStringItem>())
                 {
                     if (sharedStrings.Count >= OfficeDocumentReader.MaxSharedStrings)
                     {
@@ -152,10 +152,18 @@ internal static class OpenXmlReaders
             long totalRows = 0;
             bool anyTruncated = false;
 
-            foreach (var sheet in workbook.Workbook.Sheets.Elements<Sheet>())
+            var workbookSheets = workbook.Workbook?.Sheets;
+            if (workbookSheets is null) return new SheetSetModel();
+
+            foreach (var sheet in workbookSheets.Elements<Sheet>())
             {
-                var part = workbook.GetPartById(sheet.Id) as WorksheetPart;
-                if (part is null) continue;
+                string? sheetId = sheet.Id?.Value;
+                if (string.IsNullOrEmpty(sheetId)) continue;
+                var part = workbook.GetPartById(sheetId) as WorksheetPart;
+                var worksheet = part?.Worksheet;
+                if (part is null || worksheet is null) continue;
+
+                string sheetName = sheet.Name?.Value ?? "Sheet";
 
                 // 预估行数，如果过大则跳过详细读取
                 long? sheetRows = TryGetDimensionRows(part);
@@ -163,7 +171,7 @@ internal static class OpenXmlReaders
                 {
                     sheets.Add(new SheetData
                     {
-                        Name = sheet.Name,
+                        Name = sheetName,
                         Rows = Array.Empty<string[]>(),
                         Truncated = true,
                     });
@@ -174,7 +182,7 @@ internal static class OpenXmlReaders
 
                 var rows = new List<string[]>();
                 int maxColumns = 0;
-                foreach (var row in part.Worksheet.Elements<Row>())
+                foreach (var row in worksheet.Elements<Row>())
                 {
                     if (rows.Count >= OfficeDocumentReader.MaxSheetRows)
                     {
@@ -194,7 +202,7 @@ internal static class OpenXmlReaders
 
                 sheets.Add(new SheetData
                 {
-                    Name = sheet.Name,
+                    Name = sheetName,
                     Rows = rows.ToArray(),
                     Truncated = anyTruncated,
                     MaxColumns = maxColumns,
