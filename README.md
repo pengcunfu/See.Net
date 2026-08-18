@@ -114,14 +114,15 @@ Add-AppxPackage -Path "D:\Projects\DevTools\See.Net\artifacts\msix\See.Net_1.0.0
 
 ## 数据目录
 
-应用数据统一存放在用户文档目录下的 `See.Net` 文件夹：
+应用数据统一存放在用户文档目录下的提供商目录 `FNSoftware`、程序目录 `See`：
 
 ```
 Documents/
-└─ See.Net/
-   ├─ settings.json    # 设置（上次目录、Hex 字号、每行字节数、备份开关等）
-   ├─ Backups/         # 保存前自动备份
-   └─ Logs/            # 未处理异常日志
+└─ FNSoftware/
+   └─ See/
+      ├─ settings.json    # 设置（上次目录、Hex 字号、每行字节数、备份开关等）
+      ├─ Backups/         # 保存前自动备份
+      └─ Logs/            # 未处理异常日志
 ```
 
 ## 使用边界

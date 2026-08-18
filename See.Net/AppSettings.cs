@@ -1,6 +1,6 @@
 ﻿namespace See;
 
-/// <summary>应用设置（持久化到 Documents/See.Net/settings.json）。</summary>
+/// <summary>应用设置（持久化到 Documents/FNSoftware/See/settings.json）。</summary>
 public sealed class AppSettings
 {
     public string? LastDirectory { get; set; }
