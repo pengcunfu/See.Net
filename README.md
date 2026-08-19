@@ -110,7 +110,31 @@ powershell -ExecutionPolicy Bypass -File scripts/package-msix.ps1
 Add-AppxPackage -Path "D:\Projects\DevTools\See.Net\artifacts\msix\See.Net_1.0.0.0_x64.msix" -AllowUnsigned
 ```
 
-> 自签名包需要先信任签名证书，或在开发者模式下使用 `-AllowUnsigned`。正式发布请使用受信任的代码签名证书。
+> 自签名包需要先信任证书。GitHub Release 会附带 `See.Net.cer` 与 `install-msix.ps1`：以管理员运行该脚本即可导入证书并安装。
+
+### GitHub Actions 发布（自签名）
+
+打 tag 或在 Actions 页手动运行 **Release MSIX**：
+
+```powershell
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+产物含 `.msix`、`See.Net.cer`、`install-msix.ps1`。用户下载后以**管理员**执行：
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\install-msix.ps1
+```
+
+可选：在仓库 Secrets 中放入同一套证书，保证每次发布指纹不变：
+
+| Secret | 说明 |
+| --- | --- |
+| `MSIX_PFX_BASE64` | `.pfx` 的 Base64 |
+| `MSIX_PFX_PASSWORD` | PFX 密码 |
+
+未配置时，工作流会现场生成自签名证书（每次发布证书可能不同，需重新导入 `.cer`）。
 
 ## 数据目录
 

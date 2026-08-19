@@ -25,7 +25,7 @@
     <rescap:Capability Name="runFullTrust" />
   </Capabilities>
   <Applications>
-    <Application Id="App" Executable="See.Net\See.Net.exe" EntryPoint="Windows.FullTrustApplication">
+    <Application Id="App" Executable="See.Net\See.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
         DisplayName="See.Net"
         Description="空格快速预览与十六进制编辑器"

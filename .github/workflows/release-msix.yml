@@ -1,0 +1,123 @@
+# Build a self-signed Windows MSIX and publish it as a GitHub Release.
+#
+# Self-signed packages are not trusted by Windows by default. The release
+# includes See.Net.cer and install-msix.ps1. Users (as Administrator):
+#   powershell -ExecutionPolicy Bypass -File install-msix.ps1
+#
+# Optional: keep a stable cert across releases by adding repo secrets
+#   MSIX_PFX_BASE64     base64 of the .pfx
+#   MSIX_PFX_PASSWORD   pfx password
+# If those secrets are missing, the job creates a one-off self-signed cert.
+#
+# Triggers:
+#   git tag v1.2.3 && git push origin v1.2.3
+#   or Actions → Release MSIX → Run workflow
+
+name: Release MSIX
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "MSIX version (e.g. 1.2.3 or 1.2.3.0). Empty = use tag or 0.0.0.0"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Resolve version
+        id: meta
+        shell: pwsh
+        env:
+          TAG: ${{ github.ref_type == 'tag' && github.ref_name || '' }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+        run: |
+          $ver = "${env:INPUT_VERSION}".Trim()
+          if (-not $ver -and $env:TAG) { $ver = $env:TAG }
+          if (-not $ver) { $ver = "0.0.0.0" }
+          $ver = $ver.TrimStart("v", "V")
+          $parts = @($ver -split "\." | Where-Object { $_ -ne "" })
+          while ($parts.Count -lt 4) { $parts += "0" }
+          $msixVer = ($parts[0..3] -join ".")
+          "version=$msixVer" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          Write-Host "MSIX version: $msixVer"
+
+      - name: Fetch Office preview libraries
+        shell: pwsh
+        run: powershell -ExecutionPolicy Bypass -File scripts/fetch-office-libs.ps1
+
+      - name: Ensure packaging assets
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "packaging/assets/StoreLogo.png")) {
+            powershell -ExecutionPolicy Bypass -File scripts/generate-assets.ps1
+          }
+
+      - name: Pack and self-sign MSIX
+        shell: pwsh
+        env:
+          MSIX_PFX_BASE64: ${{ secrets.MSIX_PFX_BASE64 }}
+          MSIX_PFX_PASSWORD: ${{ secrets.MSIX_PFX_PASSWORD }}
+        run: |
+          $packArgs = @{ Version = "${{ steps.meta.outputs.version }}" }
+          $pfx = Join-Path $env:RUNNER_TEMP "seenet-sign.pfx"
+          if ($env:MSIX_PFX_BASE64) {
+            [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:MSIX_PFX_BASE64))
+            $packArgs.PfxPath = $pfx
+            $packArgs.PfxPassword = "$env:MSIX_PFX_PASSWORD"
+            Write-Host "Signing with secret PFX"
+          } else {
+            $packArgs.SelfSign = $true
+            Write-Host "Signing with a generated self-signed certificate"
+          }
+          & scripts/package-msix.ps1 @packArgs
+          Copy-Item scripts/install-msix.ps1 artifacts/msix/install-msix.ps1 -Force
+          if ($env:MSIX_PFX_BASE64 -and (Test-Path $pfx)) {
+            Remove-Item $pfx -Force
+          }
+
+      - name: Upload MSIX bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: See.Net-msix
+          path: |
+            artifacts/msix/*.msix
+            artifacts/msix/*.cer
+            artifacts/msix/install-msix.ps1
+          if-no-files-found: error
+
+      - name: Publish GitHub Release
+        if: github.ref_type == 'tag'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            artifacts/msix/*.msix
+            artifacts/msix/*.cer
+            artifacts/msix/install-msix.ps1
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          body: |
+            Self-signed MSIX for Windows x64.
+
+            First-time install (Administrator PowerShell, in the download folder):
+            ```powershell
+            powershell -ExecutionPolicy Bypass -File .\install-msix.ps1
+            ```
+
+            The script imports `See.Net.cer` into Trusted People, then installs the package.
