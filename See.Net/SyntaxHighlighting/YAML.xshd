@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SyntaxDefinition name="YAML" extensions=".yaml;.yml">
+  <Color name="Comment" foreground="#6A9955" fontStyle="italic" />
+  <Color name="String" foreground="#CE9178" />
+  <Color name="Escape" foreground="#D7BA7D" />
+  <Color name="Number" foreground="#B5CEA8" />
+  <Color name="Boolean" foreground="#569CD6" />
+  <Color name="Null" foreground="#569CD6" />
+  <Color name="Date" foreground="#4EC9B0" />
+  <Color name="Anchor" foreground="#DCDCAA" />
+  <Color name="Alias" foreground="#DCDCAA" />
+  <Color name="Tag" foreground="#C586C0" />
+  <Color name="Key" foreground="#9CDCFE" />
+  <Color name="DocumentSeparator" foreground="#808080" fontWeight="bold" />
+
+  <RuleSet>
+    <!-- 注释：# 到行尾 -->
+    <Span color="Comment" begin="#" />
+
+    <!-- 文档分隔符 -->
+    <Rule color="DocumentSeparator">^---\s*$</Rule>
+    <Rule color="DocumentSeparator">^\.\.\.\s*$</Rule>
+
+    <!-- 三引号字符串 -->
+    <Span color="String" begin="&quot;&quot;&quot;" end="&quot;&quot;&quot;" multiline="true">
+      <EscapeSequence color="Escape" char="&quot;" />
+      <EscapeSequence color="Escape" char="\" />
+      <EscapeSequence color="Escape" char="b" />
+      <EscapeSequence color="Escape" char="f" />
+      <EscapeSequence color="Escape" char="n" />
+      <EscapeSequence color="Escape" char="r" />
+      <EscapeSequence color="Escape" char="t" />
+    </Span>
+    <Span color="String" begin="'''" end="'''" multiline="true" />
+
+    <!-- 双引号字符串 -->
+    <Span color="String" begin="&quot;" end="&quot;" multiline="false">
+      <EscapeSequence color="Escape" char="&quot;" />
+      <EscapeSequence color="Escape" char="\" />
+      <EscapeSequence color="Escape" char="b" />
+      <EscapeSequence color="Escape" char="f" />
+      <EscapeSequence color="Escape" char="n" />
+      <EscapeSequence color="Escape" char="r" />
+      <EscapeSequence color="Escape" char="t" />
+      <EscapeSequence color="Escape" char="0" />
+      <EscapeSequence color="Escape" char="a" />
+      <EscapeSequence color="Escape" char="v" />
+      <EscapeSequence color="Escape" char="x" />
+      <EscapeSequence color="Escape" char="u" />
+      <EscapeSequence color="Escape" char="U" />
+    </Span>
+
+    <!-- 单引号字符串 -->
+    <Span color="String" begin="'" end="'" multiline="false" />
+
+    <!-- 标签 !tag -->
+    <Rule color="Tag">![\w]+(?:\.[\w]+)*</Rule>
+
+    <!-- 锚点 &amp;name 和别名 *name -->
+    <Rule color="Anchor">&amp;[\w\-]+</Rule>
+    <Rule color="Alias">\*[\w\-]+</Rule>
+
+    <!-- 日期时间 -->
+    <Rule color="Date">\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?</Rule>
+    <Rule color="Date">\d{4}-\d{2}-\d{2}</Rule>
+
+    <!-- 数字 -->
+    <Rule color="Number">0x[0-9a-fA-F_]+</Rule>
+    <Rule color="Number">0o[0-7_]+</Rule>
+    <Rule color="Number">0b[01_]+</Rule>
+    <Rule color="Number">[+-]?\.(?:inf|Inf|INF)</Rule>
+    <Rule color="Number">[+-]?\.(?:nan|NaN|NAN)</Rule>
+    <Rule color="Number">[+-]?\d[0-9_]*(?:\.\d[0-9_]*)?(?:[eE][+-]?\d[0-9_]*)?</Rule>
+
+    <!-- 布尔值 -->
+    <Keywords color="Boolean">
+      <Word>true</Word>
+      <Word>false</Word>
+      <Word>True</Word>
+      <Word>False</Word>
+      <Word>TRUE</Word>
+      <Word>FALSE</Word>
+      <Word>yes</Word>
+      <Word>no</Word>
+      <Word>Yes</Word>
+      <Word>No</Word>
+      <Word>YES</Word>
+      <Word>NO</Word>
+      <Word>on</Word>
+      <Word>off</Word>
+      <Word>On</Word>
+      <Word>Off</Word>
+      <Word>ON</Word>
+      <Word>OFF</Word>
+    </Keywords>
+
+    <!-- Null -->
+    <Keywords color="Null">
+      <Word>null</Word>
+      <Word>Null</Word>
+      <Word>NULL</Word>
+    </Keywords>
+
+    <!-- 键（缩进后、冒号前） -->
+    <Rule color="Key">^\s*[\w][\w\-\.]*\s*(?=:)</Rule>
+  </RuleSet>
+</SyntaxDefinition>

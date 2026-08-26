@@ -10,6 +10,13 @@
                    TextWrapping="Wrap" Margin="0,0,0,12"/>
 
         <TextBlock Margin="0,0,0,6" TextWrapping="Wrap">
+            <Run Text="官方网站："/>
+            <Hyperlink NavigateUri="https://fireneb.com"
+                       RequestNavigate="OnLinkClick">
+                https://fireneb.com
+            </Hyperlink>
+        </TextBlock>
+        <TextBlock Margin="0,0,0,6" TextWrapping="Wrap">
             <Run Text="开源地址："/>
             <Hyperlink NavigateUri="https://github.com/pengcunfu/See.Net"
                        RequestNavigate="OnLinkClick">

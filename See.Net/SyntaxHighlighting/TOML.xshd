@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SyntaxDefinition name="TOML" extensions=".toml">
+  <Color name="Comment" foreground="#6A9955" fontStyle="italic" />
+  <Color name="String" foreground="#CE9178" />
+  <Color name="Escape" foreground="#D7BA7D" />
+  <Color name="Number" foreground="#B5CEA8" />
+  <Color name="Boolean" foreground="#569CD6" />
+  <Color name="DateTime" foreground="#4EC9B0" />
+  <Color name="TableName" foreground="#4EC9B0" fontWeight="bold" />
+  <Color name="Key" foreground="#9CDCFE" />
+
+  <RuleSet>
+    <!-- 注释：# 到行尾 -->
+    <Span color="Comment" begin="#" />
+
+    <!-- 三引号字符串 -->
+    <Span color="String" begin="&quot;&quot;&quot;" end="&quot;&quot;&quot;" multiline="true">
+      <EscapeSequence color="Escape" char="&quot;" />
+      <EscapeSequence color="Escape" char="\" />
+      <EscapeSequence color="Escape" char="b" />
+      <EscapeSequence color="Escape" char="f" />
+      <EscapeSequence color="Escape" char="n" />
+      <EscapeSequence color="Escape" char="r" />
+      <EscapeSequence color="Escape" char="t" />
+      <EscapeSequence color="Escape" char="u" />
+      <EscapeSequence color="Escape" char="U" />
+    </Span>
+    <Span color="String" begin="'''" end="'''" multiline="true" />
+
+    <!-- 双引号字符串 -->
+    <Span color="String" begin="&quot;" end="&quot;" multiline="false">
+      <EscapeSequence color="Escape" char="&quot;" />
+      <EscapeSequence color="Escape" char="\" />
+      <EscapeSequence color="Escape" char="b" />
+      <EscapeSequence color="Escape" char="f" />
+      <EscapeSequence color="Escape" char="n" />
+      <EscapeSequence color="Escape" char="r" />
+      <EscapeSequence color="Escape" char="t" />
+      <EscapeSequence color="Escape" char="u" />
+      <EscapeSequence color="Escape" char="U" />
+    </Span>
+
+    <!-- 单引号字符串 -->
+    <Span color="String" begin="'" end="'" multiline="false" />
+
+    <!-- 表名 [table] 和 [[array-of-tables]] -->
+    <Rule color="TableName">^\s*\[\[[\w\.\-]+\]\]</Rule>
+    <Rule color="TableName">^\s*\[[\w\.\-]+\]</Rule>
+
+    <!-- 日期时间 -->
+    <Rule color="DateTime">\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?</Rule>
+
+    <!-- 十六进制/八进制/二进制 -->
+    <Rule color="Number">0x[0-9a-fA-F_]+</Rule>
+    <Rule color="Number">0o[0-7_]+</Rule>
+    <Rule color="Number">0b[01_]+</Rule>
+
+    <!-- 特殊数值 -->
+    <Rule color="Number">[+-]?(?:inf|nan)</Rule>
+
+    <!-- 普通数字 -->
+    <Rule color="Number">[+-]?\d[0-9_]*(?:\.\d[0-9_]*)?(?:[eE][+-]?\d[0-9_]*)?</Rule>
+
+    <!-- 布尔值 -->
+    <Keywords color="Boolean">
+      <Word>true</Word>
+      <Word>false</Word>
+    </Keywords>
+
+    <!-- 键（标识符后跟等号） -->
+    <Rule color="Key">[a-zA-Z_][\w\-\.]*\s*(?==)</Rule>
+  </RuleSet>
+</SyntaxDefinition>

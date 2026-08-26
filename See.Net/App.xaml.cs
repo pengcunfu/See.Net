@@ -41,6 +41,9 @@ public partial class App : Application
         var settings = _services.GetRequiredService<SettingsService>();
         var backup = _services.GetRequiredService<BackupService>();
 
+        // 注册自定义语法高亮定义（JSON、TOML、YAML、Log）
+        SyntaxHighlightingService.Initialize();
+
         // 系统托盘：打开文件预览、设置、关于与退出
         _tray = new TrayIconService(OpenFileForPreview, OpenSettings, OpenAbout, ExitApplication);
 

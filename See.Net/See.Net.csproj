@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
@@ -27,6 +27,11 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
     <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.4129.50" />
+  </ItemGroup>
+
+  <!-- 语法高亮定义文件作为嵌入资源 -->
+  <ItemGroup>
+    <EmbeddedResource Include="SyntaxHighlighting\*.xshd" />
   </ItemGroup>
 
   <!-- Office 网页预览的离线渲染资产（HTML/JS/CSS 及第三方库） -->

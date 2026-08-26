@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SyntaxDefinition name="JSON" extensions=".json">
+  <Color name="String" foreground="#CE9178" />
+  <Color name="Escape" foreground="#D7BA7D" />
+  <Color name="Number" foreground="#B5CEA8" />
+  <Color name="Boolean" foreground="#569CD6" />
+  <Color name="Null" foreground="#569CD6" />
+  <Color name="Punctuation" foreground="#D4D4D4" />
+
+  <RuleSet>
+    <!-- 字符串值 -->
+    <Span color="String" begin="&quot;" end="&quot;" multiline="false">
+      <EscapeSequence color="Escape" char="&quot;" />
+      <EscapeSequence color="Escape" char="\" />
+      <EscapeSequence color="Escape" char="/" />
+      <EscapeSequence color="Escape" char="b" />
+      <EscapeSequence color="Escape" char="f" />
+      <EscapeSequence color="Escape" char="n" />
+      <EscapeSequence color="Escape" char="r" />
+      <EscapeSequence color="Escape" char="t" />
+      <EscapeSequence color="Escape" char="u" />
+    </Span>
+
+    <!-- 数字 -->
+    <Rule color="Number">-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?</Rule>
+
+    <!-- 布尔值和 null -->
+    <Keywords color="Boolean">
+      <Word>true</Word>
+      <Word>false</Word>
+    </Keywords>
+    <Keywords color="Null">
+      <Word>null</Word>
+    </Keywords>
+
+    <!-- 标点 -->
+    <Rule color="Punctuation">[{}\[\],;:]</Rule>
+  </RuleSet>
+</SyntaxDefinition>

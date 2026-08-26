@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<SyntaxDefinition name="Log" extensions=".log">
+  <Color name="Timestamp" foreground="#90CAF9" />
+  <Color name="Error" foreground="#EF9A9A" fontWeight="bold" />
+  <Color name="Warning" foreground="#FFE082" />
+  <Color name="Info" foreground="#A5D6A7" />
+  <Color name="Debug" foreground="#B0BEC5" />
+  <Color name="Trace" foreground="#B0BEC5" fontStyle="italic" />
+  <Color name="Exception" foreground="#EF9A9A" fontStyle="italic" />
+  <Color name="StackTrace" foreground="#B0BEC5" />
+
+  <RuleSet>
+    <!-- Timestamps (common formats) -->
+    <Rule color="Timestamp">\b\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})?\b</Rule>
+    <Rule color="Timestamp">\b\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?\b</Rule>
+    <Rule color="Timestamp">\b\w{3} \d{2}, \d{4} \d{2}:\d{2}:\d{2} (?:AM|PM)\b</Rule>
+
+    <!-- Log levels -->
+    <Rule color="Error">\bERROR\b</Rule>
+    <Rule color="Error">\bFATAL\b</Rule>
+    <Rule color="Error">\bCRITICAL\b</Rule>
+    <Rule color="Warning">\bWARN(?:ING)?\b</Rule>
+    <Rule color="Info">\bINFO\b</Rule>
+    <Rule color="Debug">\bDEBUG\b</Rule>
+    <Rule color="Trace">\bTRACE\b</Rule>
+    <Rule color="Trace">\bVERBOSE\b</Rule>
+
+    <!-- Exception types -->
+    <Rule color="Exception">\b\w+Exception\b</Rule>
+    <Rule color="Exception">\b\w+Error\b</Rule>
+
+    <!-- Stack trace lines -->
+    <Rule color="StackTrace">^\s+at\s+.*$</Rule>
+    <Rule color="StackTrace">^\s+at\s+\w+(?:\.\w+)*\(.*\).*$</Rule>
+
+    <!-- Common log patterns -->
+    <Rule color="Exception">\bUnhandled exception\b</Rule>
+    <Rule color="Exception">\bSystem\.InvalidOperationException\b</Rule>
+    <Rule color="Exception">\bSystem\.NullReferenceException\b</Rule>
+  </RuleSet>
+</SyntaxDefinition>
