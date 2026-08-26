@@ -16,7 +16,7 @@ public partial class ShellPreviewWindow : Window
     /// <summary>
     /// 检查当前内容是否处于编辑模式
     /// </summary>
-    private bool IsInEditMode()
+    public bool IsInEditMode()
     {
         if (Vm?.Preview?.Content is TextContentViewModel textVm)
         {
@@ -46,10 +46,6 @@ public partial class ShellPreviewWindow : Window
             case Key.Up:
                 e.Handled = true;
                 Vm?.PreviousCommand.Execute(null);
-                break;
-            case Key.Space:
-                e.Handled = true;
-                ClosePreview();
                 break;
         }
     }
@@ -86,7 +82,18 @@ public partial class ShellPreviewWindow : Window
 
     public void ClosePreview()
     {
-        Vm?.DisposeContent();
-        Hide();
+        // 延迟到当前事件处理完成后执行，避免在键盘/鼠标事件期间销毁编辑器
+        Dispatcher.BeginInvoke(() =>
+        {
+            try
+            {
+                Vm?.DisposeContent();
+            }
+            catch
+            {
+                // 忽略清理异常，避免阻止窗口关闭
+            }
+            Hide();
+        });
     }
 }

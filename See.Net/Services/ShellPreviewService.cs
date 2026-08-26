@@ -50,8 +50,10 @@ public sealed class ShellPreviewService : IDisposable
         if (vkCode != KeyboardHook.VK_SPACE) return false;
 
         // 浮窗已打开：再次按空格关闭（吞掉按键，避免传给 Explorer）
+        // 但编辑模式下不拦截，让空格正常输入
         if (IsPreviewVisible)
         {
+            if (_window?.IsInEditMode() == true) return false;
             _dispatcher.BeginInvoke(ClosePreview);
             return true;
         }

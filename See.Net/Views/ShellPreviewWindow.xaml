@@ -56,7 +56,7 @@
                     </StackPanel>
                     <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
                         <TextBlock Text="{Binding PositionText}" Foreground="Gray" FontSize="11" VerticalAlignment="Center" Margin="0,0,12,0"/>
-                        <TextBlock Text="Esc 或空格关闭" Foreground="Gray" FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                        <TextBlock Text="Esc 关闭" Foreground="Gray" FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0"/>
                         <Button x:Name="PinButton" Content="&#xE718;" FontFamily="Segoe MDL2 Assets" FontSize="12" Padding="8,2" 
                                 Margin="0,0,8,0" Click="OnTogglePin" ToolTip="切换置顶"/>
                         <Button Content="&#xE711;" FontFamily="Segoe MDL2 Assets" FontSize="12" Padding="8,2" Click="OnCloseClick" ToolTip="关闭预览"/>
