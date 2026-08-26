@@ -6,6 +6,24 @@
     <StackPanel Margin="18,14">
         <CheckBox x:Name="AutoStartCheck" Content="开机自启动（随 Windows 启动，后台提供空格预览）" Margin="0,0,0,10"/>
         <CheckBox x:Name="BackupCheck" Content="保存前自动备份到 Documents\FNSoftware\See\Backups" Margin="0,0,0,14"/>
+        <Grid Margin="0,0,0,12">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="70"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            <TextBlock Text="文本字体" VerticalAlignment="Center" Margin="0,0,8,6"/>
+            <ComboBox x:Name="FontFamilyCombo" Grid.Column="1" Grid.Row="0"
+                      IsEditable="True" StaysOpenOnEdit="True"
+                      VerticalContentAlignment="Center" Margin="0,0,8,6"/>
+            <TextBlock Grid.Column="2" Text="文本字号" VerticalAlignment="Center" Margin="0,0,8,6"/>
+            <TextBox x:Name="TextFontSizeBox" Grid.Column="3" VerticalContentAlignment="Center" Margin="0,0,0,6"/>
+        </Grid>
         <Grid Margin="0,0,0,16">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>

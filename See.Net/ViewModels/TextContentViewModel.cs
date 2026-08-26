@@ -53,6 +53,12 @@ public partial class TextContentViewModel : ObservableObject
     private EncodingOption? _selectedEncoding;
 
     [ObservableProperty]
+    private string _fontFamily = "Consolas";
+
+    [ObservableProperty]
+    private double _fontSize = 13;
+
+    [ObservableProperty]
     private bool _wordWrap = true;
 
     partial void OnIsEditModeChanged(bool value) => IsReadOnly = !value;

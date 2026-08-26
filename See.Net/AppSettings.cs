@@ -4,6 +4,8 @@
 public sealed class AppSettings
 {
     public string? LastDirectory { get; set; }
+    public string TextFontFamily { get; set; } = "Consolas";
+    public double TextFontSize { get; set; } = 13;
     public double HexFontSize { get; set; } = 14;
     public int BytesPerRow { get; set; } = 16;
     public bool BackupEnabled { get; set; } = true;

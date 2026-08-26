@@ -13,12 +13,14 @@ namespace See.ViewModels;
 public sealed partial class WebContentViewModel : ObservableObject, IDisposable
 {
     private readonly BackupService _backup;
+    private readonly SettingsService _settings;
 
-    public WebContentViewModel(string path, bool canRender, BackupService backup)
+    public WebContentViewModel(string path, bool canRender, BackupService backup, SettingsService settings)
     {
         FilePath = path;
         CanRender = canRender;
         _backup = backup;
+        _settings = settings;
         if (!canRender) _useRendered = false; // WebView2 运行时缺失：初始即源码模式
     }
 
@@ -47,7 +49,7 @@ public sealed partial class WebContentViewModel : ObservableObject, IDisposable
         Encoding encoding;
         try
         {
-            var bytes = File.ReadAllBytes(FilePath);
+            var bytes = ReadFileShared(FilePath);
             encoding = EncodingService.Detect(bytes);
             text = encoding.GetString(bytes);
         }
@@ -58,7 +60,24 @@ public sealed partial class WebContentViewModel : ObservableObject, IDisposable
             encoding = Encoding.UTF8;
         }
         Source = new TextContentViewModel(FilePath, text, encoding, _backup, allowEdit: false);
+        Source.FontFamily = _settings.Current.TextFontFamily;
+        Source.FontSize = _settings.Current.TextFontSize;
         return Source;
+    }
+
+    /// <summary>以共享只读方式读取文件全部字节，允许被其他进程占用的文件也能打开。</summary>
+    private static byte[] ReadFileShared(string path)
+    {
+        using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        var bytes = new byte[fs.Length];
+        int offset = 0;
+        while (offset < bytes.Length)
+        {
+            int read = fs.Read(bytes, offset, bytes.Length - offset);
+            if (read == 0) break;
+            offset += read;
+        }
+        return bytes;
     }
 
     public void Dispose()

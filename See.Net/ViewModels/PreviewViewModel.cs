@@ -164,7 +164,12 @@ public partial class PreviewViewModel : ObservableObject
     {
         var loaded = await TryReadTextAsync(file, "文本加载失败");
         if (loaded is not null)
-            Content = new TextContentViewModel(file.FullPath, loaded.Value.text, loaded.Value.encoding, _backup);
+        {
+            var vm = new TextContentViewModel(file.FullPath, loaded.Value.text, loaded.Value.encoding, _backup);
+            vm.FontFamily = _settings.Current.TextFontFamily;
+            vm.FontSize = _settings.Current.TextFontSize;
+            Content = vm;
+        }
     }
 
     /// <summary>文本类加载共用：大小守卫 + 字节读取 + 编码检测；失败时置 Info 内容并返回 null。</summary>
@@ -183,7 +188,7 @@ public partial class PreviewViewModel : ObservableObject
                 return null;
             }
 
-            var bytes = await Task.Run(() => File.ReadAllBytes(file.FullPath));
+            var bytes = await Task.Run(() => ReadFileShared(file.FullPath));
             var encoding = EncodingService.Detect(bytes);
             return (encoding.GetString(bytes), encoding);
         }
@@ -194,15 +199,32 @@ public partial class PreviewViewModel : ObservableObject
         }
     }
 
+    /// <summary>以共享只读方式读取文件全部字节，允许被其他进程占用的文件也能打开。</summary>
+    private static byte[] ReadFileShared(string path)
+    {
+        using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        var bytes = new byte[fs.Length];
+        int offset = 0;
+        while (offset < bytes.Length)
+        {
+            int read = fs.Read(bytes, offset, bytes.Length - offset);
+            if (read == 0) break;
+            offset += read;
+        }
+        return bytes;
+    }
+
     private void LoadImage(FileEntry file)
     {
         try
         {
+            var bytes = ReadFileShared(file.FullPath);
+            using var ms = new MemoryStream(bytes);
             var image = new BitmapImage();
             image.BeginInit();
             image.CacheOption = BitmapCacheOption.OnLoad;
             image.DecodePixelWidth = 2048;
-            image.UriSource = new Uri(file.FullPath);
+            image.StreamSource = ms;
             image.EndInit();
             image.Freeze();
             Content = new ImageContentViewModel(image, file.FullPath, file.Length);
@@ -226,6 +248,8 @@ public partial class PreviewViewModel : ObservableObject
         if (loaded is null) return;
 
         var source = new TextContentViewModel(file.FullPath, loaded.Value.text, loaded.Value.encoding, _backup);
+        source.FontFamily = _settings.Current.TextFontFamily;
+        source.FontSize = _settings.Current.TextFontSize;
         var vm = new MarkdownContentViewModel(file.FullPath, source, Views.WebViewHostBase.IsRuntimeAvailable());
         await vm.RenderAsync(); // 先渲染，视图进入时 Html 已就绪
         Content = vm;
@@ -234,7 +258,7 @@ public partial class PreviewViewModel : ObservableObject
     /// <summary>本地网页：WebView2 目录映射渲染（脚本启用），可切只读源码。</summary>
     private async Task LoadWebAsync(FileEntry file)
     {
-        var vm = new WebContentViewModel(file.FullPath, Views.WebViewHostBase.IsRuntimeAvailable(), _backup);
+        var vm = new WebContentViewModel(file.FullPath, Views.WebViewHostBase.IsRuntimeAvailable(), _backup, _settings);
         Content = vm;
         await Task.CompletedTask;
     }
