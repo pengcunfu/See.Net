@@ -44,7 +44,7 @@ public sealed class TrayIconService : IDisposable
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("退出", null, (_, _) => _exit());
         _icon.ContextMenuStrip = menu;
-        _icon.DoubleClick += (_, _) => _openFile();
+        _icon.Click += (_, _) => _showSettings();
     }
 
     public void ShowBalloon(string title, string text)
