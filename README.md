@@ -56,7 +56,7 @@
 | Markdown 渲染 | Markdig 1.3.2 + 自研 GitHub 风格离线 CSS（WebView2 承载） |
 | 网页 / 音频 / PDF 渲染 | WebView2（目录映射 / 自研离线播放页 / Chromium PDF 查看器；音频与 PDF 经未映射域拦截实现 HTTP Range） |
 | 测试 | xUnit |
-| 发布 | MSIX（自包含 win-x64，可选自签名） |
+| 发布 | 自包含发布（win-x64） |
 
 ## 项目结构
 
@@ -67,11 +67,9 @@ See.Net/
 ├─ See.Net/                # WPF 主应用：视图、视图模型、自研 Hex 控件
 ├─ See.Net.Tests/          # xUnit 单元测试
 ├─ packaging/
-│  ├─ MSIX/                # AppxManifest、SDK 打包工具还原工程
-│  └─ assets/              # 应用图标资源（脚本生成）
+│  └─ assets/              # 应用图标资源
 └─ scripts/
-   ├─ generate-assets.ps1  # 生成 PNG / ICO 图标
-   └─ package-msix.ps1     # 发布并打包 MSIX
+   └─ generate-assets.ps1  # 生成 PNG / ICO 图标
 ```
 
 ## 构建与运行
@@ -86,55 +84,6 @@ dotnet run --project See.Net
 ```powershell
 dotnet test See.Net.Tests
 ```
-
-## MSIX 打包
-
-打包脚本会通过 NuGet 还原 Windows SDK BuildTools（MakeAppx / signtool），无需单独安装 Windows SDK：
-
-```powershell
-# 生成图标资源（首次或修改后执行）
-powershell -ExecutionPolicy Bypass -File scripts/generate-assets.ps1
-
-# 打包（含自签名证书，证书保存在当前用户证书库）
-powershell -ExecutionPolicy Bypass -File scripts/package-msix.ps1 -SelfSign
-
-# 不带签名
-powershell -ExecutionPolicy Bypass -File scripts/package-msix.ps1
-```
-
-产物位于 `artifacts/msix/See.Net_<版本>_x64.msix`。
-
-安装示例：
-
-```powershell
-Add-AppxPackage -Path "D:\Projects\DevTools\See.Net\artifacts\msix\See.Net_1.0.0.0_x64.msix" -AllowUnsigned
-```
-
-> 自签名包需要先信任证书。GitHub Release 会附带 `See.Net.cer` 与 `install-msix.ps1`：以管理员运行该脚本即可导入证书并安装。
-
-### GitHub Actions 发布（自签名）
-
-打 tag 或在 Actions 页手动运行 **Release MSIX**：
-
-```powershell
-git tag v1.0.0
-git push origin v1.0.0
-```
-
-产物含 `.msix`、`See.Net.cer`、`install-msix.ps1`。用户下载后以**管理员**执行：
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\install-msix.ps1
-```
-
-可选：在仓库 Secrets 中放入同一套证书，保证每次发布指纹不变：
-
-| Secret | 说明 |
-| --- | --- |
-| `MSIX_PFX_BASE64` | `.pfx` 的 Base64 |
-| `MSIX_PFX_PASSWORD` | PFX 密码 |
-
-未配置时，工作流会现场生成自签名证书（每次发布证书可能不同，需重新导入 `.cer`）。
 
 ## 数据目录
 
