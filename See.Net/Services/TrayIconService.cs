@@ -9,13 +9,15 @@ public sealed class TrayIconService : IDisposable
 {
     private readonly NotifyIcon _icon;
     private readonly Action _openFile;
+    private readonly Action _showLauncher;
     private readonly Action _showSettings;
     private readonly Action _showAbout;
     private readonly Action _exit;
 
-    public TrayIconService(Action openFile, Action showSettings, Action showAbout, Action exit)
+    public TrayIconService(Action openFile, Action showLauncher, Action showSettings, Action showAbout, Action exit)
     {
         _openFile = openFile;
+        _showLauncher = showLauncher;
         _showSettings = showSettings;
         _showAbout = showAbout;
         _exit = exit;
@@ -44,7 +46,11 @@ public sealed class TrayIconService : IDisposable
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("退出", null, (_, _) => _exit());
         _icon.ContextMenuStrip = menu;
-        _icon.Click += (_, _) => _showSettings();
+        // 左键单击打开启动器（搜索框）
+        _icon.MouseUp += (_, e) =>
+        {
+            if (e.Button == MouseButtons.Left) _showLauncher();
+        };
     }
 
     public void ShowBalloon(string title, string text)

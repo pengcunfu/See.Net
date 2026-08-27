@@ -21,6 +21,7 @@ public sealed class ShellPreviewService : IDisposable
     private readonly ExplorerSelectionService _selection = new();
     private ShellPreviewViewModel? _viewModel;
     private ShellPreviewWindow? _window;
+    private LauncherWindow? _launcherWindow;
     private bool _disposed;
 
     public ShellPreviewService(SettingsService settings, BackupService backup, Dispatcher dispatcher)
@@ -49,6 +50,9 @@ public sealed class ShellPreviewService : IDisposable
 
         if (vkCode != KeyboardHook.VK_SPACE) return false;
 
+        // 启动器已打开：不拦截空格，让搜索框正常输入
+        if (_launcherWindow is { IsVisible: true }) return false;
+
         // 浮窗已打开：再次按空格关闭（吞掉按键，避免传给 Explorer）
         // 但编辑模式下不拦截，让空格正常输入
         if (IsPreviewVisible)
@@ -61,13 +65,24 @@ public sealed class ShellPreviewService : IDisposable
         IntPtr foreground = GetForegroundWindow();
         if (foreground == IntPtr.Zero) return false;
         string? className = GetWindowClassName(foreground);
-        if (!InputFocusClassifier.IsExplorerClass(className)) return false;
-        if (IsInputFocusOnTextBox(foreground)) return false;
 
-        // 消费按键，在 UI 线程执行 Shell COM 枚举与弹窗
-        IntPtr captured = foreground;
-        _dispatcher.BeginInvoke(() => ShowPreviewFromExplorer(captured));
-        return true;
+        // 资源管理器中：空格预览文件
+        if (InputFocusClassifier.IsExplorerClass(className))
+        {
+            if (IsInputFocusOnTextBox(foreground)) return false;
+            IntPtr captured = foreground;
+            _dispatcher.BeginInvoke(() => ShowPreviewFromExplorer(captured));
+            return true;
+        }
+
+        // 任务栏焦点时：显示全局启动器
+        if (InputFocusClassifier.IsTaskbar(className))
+        {
+            _dispatcher.BeginInvoke(ShowLauncher);
+            return true;
+        }
+
+        return false;
     }
 
     private void ShowPreviewFromExplorer(IntPtr foreground)
@@ -114,6 +129,15 @@ public sealed class ShellPreviewService : IDisposable
         _viewModel?.DisposeContent();
     }
 
+    /// <summary>显示全局启动器（非资源管理器场景按空格，或托盘左键点击）。</summary>
+    public void ShowLauncher()
+    {
+        if (_disposed) return;
+        if (_launcherWindow is null)
+            _launcherWindow = new LauncherWindow();
+        _launcherWindow.ShowLauncher();
+    }
+
     private static bool IsInputFocusOnTextBox(IntPtr window)
     {
         try
@@ -150,6 +174,7 @@ public sealed class ShellPreviewService : IDisposable
         _hook.Dispose();
         _viewModel?.DisposeContent();
         _window?.Close();
+        _launcherWindow?.Close();
     }
 
     [DllImport("user32.dll")]

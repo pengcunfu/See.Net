@@ -6,3 +6,4 @@ artifacts/
 *.suo
 TestResults/
 *.dmp
+website/node_modules/

@@ -44,12 +44,12 @@ public partial class App : Application
         // 注册自定义语法高亮定义（JSON、TOML、YAML、Log）
         SyntaxHighlightingService.Initialize();
 
-        // 系统托盘：打开文件预览、设置、关于与退出
-        _tray = new TrayIconService(OpenFileForPreview, OpenSettings, OpenAbout, ExitApplication);
-
-        // 资源管理器空格预览：全局键盘钩子
+        // 资源管理器空格预览：全局键盘钩子（需在托盘之前创建，托盘左键调用其启动器）
         _shellPreview = new ShellPreviewService(settings, backup, Dispatcher);
         _shellPreview.Start();
+
+        // 系统托盘：打开文件预览、启动器、设置、关于与退出
+        _tray = new TrayIconService(OpenFileForPreview, () => _shellPreview.ShowLauncher(), OpenSettings, OpenAbout, ExitApplication);
 
         // 随 Windows 启动（启动文件夹快捷方式，MSIX 下注册表 Run 会被虚拟化）。
         AutoStartService.Apply(settings.Current.AutoStartEnabled);
@@ -116,15 +116,27 @@ public partial class App : Application
     private void DoOpenSettings()
     {
         if (_services is null) return;
-        if (_settingsWindow is null)
+        if (_settingsWindow is not null)
         {
-            var settings = _services.GetRequiredService<SettingsService>();
-            _settingsWindow = new SettingsWindow(settings);
-            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+            try
+            {
+                _settingsWindow.Show();
+                _settingsWindow.Activate();
+                _settingsWindow.WindowState = WindowState.Normal;
+                return;
+            }
+            catch (ArgumentException)
+            {
+                // 窗口 VisualTree 已损坏（如跨线程关闭后引用未清空），重建窗口
+                try { _settingsWindow.Close(); } catch { }
+                _settingsWindow = null;
+            }
         }
+        var settings = _services.GetRequiredService<SettingsService>();
+        _settingsWindow = new SettingsWindow(settings);
+        _settingsWindow.Closed += (_, _) => _settingsWindow = null;
         _settingsWindow.Show();
         _settingsWindow.Activate();
-        _settingsWindow.WindowState = WindowState.Normal;
     }
 
     /// <summary>打开关于窗口（单实例复用，关闭后重建）。</summary>
@@ -138,14 +150,25 @@ public partial class App : Application
 
     private void DoOpenAbout()
     {
-        if (_aboutWindow is null)
+        if (_aboutWindow is not null)
         {
-            _aboutWindow = new AboutWindow();
-            _aboutWindow.Closed += (_, _) => _aboutWindow = null;
+            try
+            {
+                _aboutWindow.Show();
+                _aboutWindow.Activate();
+                _aboutWindow.WindowState = WindowState.Normal;
+                return;
+            }
+            catch (ArgumentException)
+            {
+                try { _aboutWindow.Close(); } catch { }
+                _aboutWindow = null;
+            }
         }
+        _aboutWindow = new AboutWindow();
+        _aboutWindow.Closed += (_, _) => _aboutWindow = null;
         _aboutWindow.Show();
         _aboutWindow.Activate();
-        _aboutWindow.WindowState = WindowState.Normal;
     }
 
     private void ExitApplication()
