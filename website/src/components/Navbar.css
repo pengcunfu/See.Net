@@ -1,0 +1,105 @@
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  height: var(--nav-h);
+  background: rgba(13, 17, 23, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.3s, background 0.3s;
+}
+
+.navbar.scrolled {
+  border-bottom-color: var(--border);
+  background: rgba(13, 17, 23, 0.95);
+}
+
+.nav-content {
+  display: flex;
+  align-items: center;
+  height: 100%;
+  gap: 32px;
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text);
+  font-weight: 700;
+  font-size: 1.2rem;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+.logo-icon { font-size: 1.4em; }
+.logo-dot  { color: var(--accent); }
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex: 1;
+}
+
+.nav-links a {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: color var(--transition);
+  white-space: nowrap;
+}
+
+.nav-links a:hover {
+  color: var(--text);
+}
+
+.nav-cta { flex-shrink: 0; }
+
+.nav-toggle {
+  display: none;
+  flex-direction: column;
+  gap: 5px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.nav-toggle span {
+  display: block;
+  width: 24px;
+  height: 2px;
+  background: var(--text);
+  border-radius: 2px;
+  transition: transform var(--transition), opacity var(--transition);
+}
+
+.nav-toggle.active span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.nav-toggle.active span:nth-child(2) { opacity: 0; }
+.nav-toggle.active span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+@media (max-width: 768px) {
+  .nav-links {
+    display: none;
+    position: fixed;
+    top: var(--nav-h);
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    z-index: 999;
+  }
+
+  .nav-links.active { display: flex; }
+  .nav-links a { font-size: 1.2rem; }
+  .nav-toggle { display: flex; margin-left: auto; }
+  .nav-cta { display: none; }
+}

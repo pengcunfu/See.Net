@@ -1,0 +1,217 @@
+/* ============================================
+   Docs Page Styles
+   ============================================ */
+
+.docs-layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  gap: 0;
+  min-height: 100vh;
+  padding-top: var(--nav-h);
+}
+
+/* --- Sidebar --- */
+.docs-sidebar {
+  position: sticky;
+  top: var(--nav-h);
+  height: calc(100vh - var(--nav-h));
+  overflow-y: auto;
+  padding: 24px 0;
+  border-right: 1px solid var(--border);
+  background: var(--bg-alt);
+}
+
+.docs-sidebar::-webkit-scrollbar { width: 4px; }
+.docs-sidebar::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+.sidebar-section {
+  margin-bottom: 8px;
+}
+
+.sidebar-section-title {
+  padding: 8px 24px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sidebar-link {
+  display: block;
+  padding: 6px 24px 6px 28px;
+  font-size: 0.88rem;
+  color: var(--text-secondary);
+  transition: all var(--transition);
+  border-left: 2px solid transparent;
+}
+
+.sidebar-link:hover {
+  color: var(--text);
+  background: var(--accent-bg);
+}
+
+.sidebar-link.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: var(--accent-bg);
+}
+
+/* --- Main Content --- */
+.docs-main {
+  padding: 48px 56px 80px;
+  max-width: 860px;
+}
+
+.docs-main h1 {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+
+.docs-main h2 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-top: 48px;
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.docs-main h3 {
+  font-size: 1.2rem;
+  font-weight: 700;
+  margin-top: 32px;
+  margin-bottom: 12px;
+}
+
+.docs-main h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-top: 24px;
+  margin-bottom: 8px;
+}
+
+.docs-main p {
+  margin-bottom: 16px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+}
+
+.docs-main ul, .docs-main ol {
+  margin-bottom: 16px;
+  padding-left: 24px;
+  color: var(--text-secondary);
+}
+
+.docs-main li {
+  margin-bottom: 6px;
+  line-height: 1.6;
+}
+
+.docs-main table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 24px;
+  font-size: 0.9rem;
+}
+
+.docs-main th, .docs-main td {
+  padding: 10px 14px;
+  text-align: left;
+  border: 1px solid var(--border);
+}
+
+.docs-main th {
+  background: var(--surface);
+  font-weight: 600;
+  color: var(--text);
+}
+
+.docs-main td {
+  color: var(--text-secondary);
+}
+
+.docs-main code {
+  font-size: 0.85em;
+}
+
+.docs-main pre {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px 20px;
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
+.docs-main pre code {
+  font-size: 0.82rem;
+  line-height: 1.7;
+  background: none;
+  padding: 0;
+  border: none;
+  color: var(--text-secondary);
+}
+
+.docs-main blockquote {
+  margin: 16px 0;
+  padding: 12px 20px;
+  border-left: 3px solid var(--accent);
+  background: var(--accent-bg);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--text-secondary);
+}
+
+.docs-main blockquote p:last-child { margin-bottom: 0; }
+
+.docs-main hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 32px 0;
+}
+
+.docs-main .alert {
+  padding: 16px 20px;
+  border-radius: var(--radius-sm);
+  margin-bottom: 20px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.docs-main .alert-info {
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  color: var(--accent);
+}
+
+.docs-main .alert-warning {
+  background: rgba(210, 153, 34, 0.1);
+  border: 1px solid rgba(210, 153, 34, 0.3);
+  color: var(--yellow);
+}
+
+/* --- Responsive --- */
+@media (max-width: 900px) {
+  .docs-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .docs-sidebar {
+    display: none;
+    position: fixed;
+    top: var(--nav-h);
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    z-index: 998;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .docs-sidebar.active { display: block; }
+
+  .docs-main {
+    padding: 32px 20px 60px;
+  }
+}

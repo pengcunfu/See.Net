@@ -1,0 +1,228 @@
+{
+  "WebAtomList": [],
+  "NativeAtomList": [],
+  "FolderAtomList": [],
+  "InsAtomList": [
+    {
+      "Key": "cpp",
+      "Name": "C++环境管理",
+      "IconPath": "/Assets/Icons/cpp.png",
+      "Description": "管理C++编译器和开发工具",
+      "Tag": "cpp"
+    },
+    {
+      "Key": "java",
+      "Name": "Java环境管理",
+      "IconPath": "/Assets/Icons/java.png",
+      "Description": "管理Java JDK和相关工具",
+      "Tag": "java"
+    },
+    {
+      "Key": "python",
+      "Name": "Python环境管理",
+      "IconPath": "/Assets/Icons/python.png",
+      "Description": "管理Python解释器和包管理",
+      "Tag": "python"
+    },
+    {
+      "Key": "php",
+      "Name": "PHP环境管理",
+      "IconPath": "/Assets/Icons/php.png",
+      "Description": "管理PHP解释器和Composer",
+      "Tag": "php"
+    },
+    {
+      "Key": "node",
+      "Name": "Node.js环境管理",
+      "IconPath": "/Assets/Icons/node.png",
+      "Description": "管理Node.js和npm包",
+      "Tag": "node"
+    },
+    {
+      "Key": "mysql",
+      "Name": "MySQL服务管理",
+      "IconPath": "/Assets/Icons/mysql.png",
+      "Description": "管理MySQL数据库服务",
+      "Tag": "mysql"
+    },
+    {
+      "Key": "redis",
+      "Name": "Redis服务管理",
+      "IconPath": "/Assets/Icons/redis.png",
+      "Description": "管理Redis缓存服务",
+      "Tag": "redis"
+    },
+    {
+      "Key": "minio",
+      "Name": "MinIO服务管理",
+      "IconPath": "/Assets/Icons/minio.png",
+      "Description": "管理MinIO对象存储服务",
+      "Tag": "minio"
+    },
+    {
+      "Key": "rabbitmq",
+      "Name": "RabbitMQ服务管理",
+      "IconPath": "/Assets/Icons/rabbitmq.png",
+      "Description": "管理RabbitMQ消息队列",
+      "Tag": "rabbitmq"
+    },
+    {
+      "Key": "nginx",
+      "Name": "Nginx服务管理",
+      "IconPath": "/Assets/Icons/nginx.png",
+      "Description": "管理Nginx Web服务器",
+      "Tag": "nginx"
+    }
+  ],
+  "WinToolAtomList": [
+    {
+      "Key": "disk",
+      "Name": "磁盘管理",
+      "IconPath": "/Assets/Icons/win/disk.png",
+      "Description": "",
+      "Tag": "disk"
+    },
+    {
+      "Key": "device",
+      "Name": "设备管理器",
+      "IconPath": "/Assets/Icons/win/device.png",
+      "Description": "",
+      "Tag": "device"
+    },
+    {
+      "Key": "sound",
+      "Name": "声音设置",
+      "IconPath": "/Assets/Icons/win/sound.png",
+      "Description": "",
+      "Tag": "sound"
+    },
+    {
+      "Key": "display",
+      "Name": "显示设置",
+      "IconPath": "/Assets/Icons/win/display.png",
+      "Description": "",
+      "Tag": "display"
+    },
+    {
+      "Key": "power",
+      "Name": "电源选项",
+      "IconPath": "/Assets/Icons/win/power.png",
+      "Description": "",
+      "Tag": "power"
+    },
+    {
+      "Key": "task",
+      "Name": "任务管理器",
+      "IconPath": "/Assets/Icons/win/task.png",
+      "Description": "",
+      "Tag": "task"
+    },
+    {
+      "Key": "planned_task",
+      "Name": "计划任务",
+      "IconPath": "/Assets/Icons/win/planned_task.png",
+      "Description": "",
+      "Tag": "planned_task"
+    },
+    {
+      "Key": "regedit",
+      "Name": "注册表",
+      "IconPath": "/Assets/Icons/win/regedit.png",
+      "Description": "",
+      "Tag": "regedit"
+    },
+    {
+      "Key": "env",
+      "Name": "环境变量",
+      "IconPath": "/Assets/Icons/win/env.png",
+      "Description": "",
+      "Tag": "env"
+    },
+    {
+      "Key": "res",
+      "Name": "资源监视器",
+      "IconPath": "/Assets/Icons/win/res.png",
+      "Description": "",
+      "Tag": "res"
+    },
+    {
+      "Key": "config",
+      "Name": "系统配置",
+      "IconPath": "/Assets/Icons/win/config.png",
+      "Description": "",
+      "Tag": "config"
+    },
+    {
+      "Key": "info",
+      "Name": "系统信息",
+      "IconPath": "/Assets/Icons/win/info.png",
+      "Description": "",
+      "Tag": "info"
+    },
+    {
+      "Key": "event",
+      "Name": "事件查看器",
+      "IconPath": "/Assets/Icons/win/event.png",
+      "Description": "",
+      "Tag": "event"
+    },
+    {
+      "Key": "firewall",
+      "Name": "防火墙",
+      "IconPath": "/Assets/Icons/win/firewall.png",
+      "Description": "",
+      "Tag": "firewall"
+    },
+    {
+      "Key": "network",
+      "Name": "网络连接",
+      "IconPath": "/Assets/Icons/win/network.png",
+      "Description": "",
+      "Tag": "network"
+    },
+    {
+      "Key": "server",
+      "Name": "服务",
+      "IconPath": "/Assets/Icons/win/server.png",
+      "Description": "",
+      "Tag": "server"
+    },
+    {
+      "Key": "computer",
+      "Name": "计算机管理",
+      "IconPath": "/Assets/Icons/win/computer.png",
+      "Description": "",
+      "Tag": "computer"
+    },
+    {
+      "Key": "security",
+      "Name": "本地安全策略",
+      "IconPath": "/Assets/Icons/win/security.png",
+      "Description": "",
+      "Tag": "security"
+    },
+    {
+      "Key": "uac",
+      "Name": "用户账户控制",
+      "IconPath": "/Assets/Icons/win/uac.png",
+      "Description": "",
+      "Tag": "uac"
+    },
+    {
+      "Key": "control",
+      "Name": "控制面板",
+      "IconPath": "/Assets/Icons/win/control.png",
+      "Description": "",
+      "Tag": "control"
+    }
+  ],
+  "Config": {
+    "TrayIcon": true,
+    "SelfStarting": false,
+    "BaseEnvPath": "D:\\ProgramBox\\env",
+    "Language": "zh-CN",
+    "DarkMode": false,
+    "EdgeAutoHide": false,
+    "ShowWindowHotkey": "Ctrl+Alt+D"
+  }
+}

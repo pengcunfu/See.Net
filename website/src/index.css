@@ -1,0 +1,222 @@
+/* ============================================
+   See.net — Global Styles
+   ============================================ */
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --bg:           #0d1117;
+  --bg-alt:       #161b22;
+  --surface:      #1c2128;
+  --border:       #30363d;
+  --border-light: #21262d;
+
+  --text:         #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted:   #6e7681;
+
+  --accent:       #58a6ff;
+  --accent-hover: #79c0ff;
+  --accent-bg:    rgba(56, 139, 253, 0.1);
+  --accent-border: rgba(56, 139, 253, 0.4);
+
+  --green:        #3fb950;
+  --yellow:       #d29922;
+  --red:          #f85149;
+  --purple:       #bc8cff;
+  --pink:         #f778ba;
+  --orange:       #f0883e;
+
+  --gradient:     linear-gradient(135deg, #58a6ff 0%, #bc8cff 50%, #f778ba 100%);
+  --gradient-subtle: linear-gradient(135deg, rgba(88,166,255,0.15) 0%, rgba(188,140,255,0.15) 50%, rgba(247,120,186,0.15) 100%);
+
+  --radius-sm:    6px;
+  --radius:       12px;
+  --radius-lg:    16px;
+  --radius-xl:    24px;
+
+  --shadow-sm:    0 1px 2px rgba(0,0,0,0.3);
+  --shadow:       0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg:    0 8px 30px rgba(0,0,0,0.5);
+
+  --font:         -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', Helvetica, Arial, sans-serif;
+  --font-mono:    'SF Mono', 'Cascadia Code', 'Fira Code', Consolas, monospace;
+
+  --nav-h:        64px;
+  --container:    1200px;
+  --transition:   0.2s ease;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: var(--nav-h);
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+  transition: color var(--transition);
+}
+
+a:hover {
+  color: var(--accent-hover);
+}
+
+img { max-width: 100%; height: auto; }
+
+code {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+  background: var(--surface);
+  padding: 0.15em 0.4em;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.container {
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* --- Buttons --- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  transition: all var(--transition);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.btn:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+  color: #fff;
+  box-shadow: 0 0 20px rgba(88, 166, 255, 0.3);
+}
+
+.btn-outline {
+  background: transparent;
+  border-color: var(--border);
+  color: var(--text);
+}
+
+.btn-outline:hover {
+  background: var(--surface);
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
+.btn-lg {
+  padding: 14px 28px;
+  font-size: 1rem;
+}
+
+.btn-block {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* --- Keyboard Key --- */
+kbd {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 28px;
+  padding: 0 8px;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  white-space: nowrap;
+}
+
+/* --- Section --- */
+.section {
+  padding: 100px 0;
+}
+
+.section-alt {
+  background: var(--bg-alt);
+}
+
+.section-header {
+  text-align: center;
+  margin-bottom: 64px;
+}
+
+.section-title {
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 12px;
+  letter-spacing: -0.01em;
+}
+
+.section-desc {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+}
+
+/* --- Animations --- */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+  40% { transform: translateX(-50%) translateY(-8px); }
+  60% { transform: translateX(-50%) translateY(-4px); }
+}
+
+@media (max-width: 768px) {
+  :root { --nav-h: 56px; }
+  .hide-mobile { display: none; }
+  .section { padding: 64px 0; }
+  .section-title { font-size: 1.8rem; }
+}
+
+@media (max-width: 480px) {
+  .container { padding: 0 16px; }
+}
