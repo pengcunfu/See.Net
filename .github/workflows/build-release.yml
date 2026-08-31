@@ -60,14 +60,15 @@ jobs:
         run: |
           dotnet test ${{ env.SOLUTION }} -c Release --no-restore --nologo
 
-      - name: 发布自包含版本
+      - name: 发布框架依赖单文件版本（不打包 .NET，安装器负责装运行时）
         shell: pwsh
         run: |
           dotnet publish ${{ env.CSPROJ }} `
             -c Release `
             -r ${{ env.RUNTIME }} `
-            --self-contained true `
-            -p:PublishSingleFile=false `
+            --self-contained false `
+            -p:PublishSingleFile=true `
+            -p:IncludeNativeLibrariesForSelfExtract=true `
             -p:DebugType=None `
             -p:DebugSymbols=false `
             -p:Version=${{ steps.ver.outputs.version }} `
@@ -128,6 +129,7 @@ jobs:
             --packTitle "See.Net" `
             --packAuthors "FNSoftware" `
             -i packaging/assets/app.ico `
+            --framework net10-x64-desktop `
             --releaseNotes RELEASE_NOTES.md
           if ($LASTEXITCODE -ne 0) { throw "vpk pack 失败" }
           if (-not (Test-Path "artifacts/velopack/See.Net-win-Setup.exe")) { throw "Velopack 安装包未生成" }
