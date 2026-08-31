@@ -165,49 +165,59 @@ internal static class OpenXmlReaders
 
                 string sheetName = sheet.Name?.Value ?? "Sheet";
 
-                // 预估行数，如果过大则跳过详细读取
-                long? sheetRows = TryGetDimensionRows(part);
-                if (sheetRows > OfficeDocumentReader.MaxSheetRows)
-                {
-                    sheets.Add(new SheetData
-                    {
-                        Name = sheetName,
-                        Rows = Array.Empty<string[]>(),
-                        Truncated = true,
-                    });
-                    totalRows += sheetRows ?? 0;
-                    anyTruncated = true;
-                    continue;
-                }
+                // 真实总行数优先取 sheet 头部 dimension（避免整表解析），无则按已读行数计
+                long? dimRows = TryGetDimensionRows(part);
 
                 var rows = new List<string[]>();
                 int maxColumns = 0;
-                foreach (var row in worksheet.Elements<Row>())
+                bool sheetTruncated = false;
+                var sheetData = worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.SheetData>().FirstOrDefault();
+                if (sheetData is not null)
                 {
-                    if (rows.Count >= OfficeDocumentReader.MaxSheetRows)
+                    foreach (var row in sheetData.Elements<Row>())
                     {
-                        anyTruncated = true;
-                        break;
-                    }
+                        if (rows.Count >= OfficeDocumentReader.MaxSheetRows)
+                        {
+                            sheetTruncated = true;
+                            break;
+                        }
 
-                    var cells = new List<string>();
-                    foreach (var cell in row.Elements<Cell>())
-                    {
-                        string value = GetCellValue(cell, sharedStrings, sharedTruncated);
-                        cells.Add(value);
+                        var cells = new List<string>();
+                        foreach (var cell in row.Elements<Cell>())
+                        {
+                            cells.Add(GetCellValue(cell, sharedStrings, sharedTruncated));
+                        }
+                        if (cells.Count > maxColumns) maxColumns = cells.Count;
+                        rows.Add(cells.ToArray());
                     }
-                    if (cells.Count > maxColumns) maxColumns = cells.Count;
-                    rows.Add(cells.ToArray());
+                }
+
+                long total = dimRows ?? rows.Count;
+                if (total > OfficeDocumentReader.MaxSheetRows)
+                    sheetTruncated = true;
+                anyTruncated |= sheetTruncated;
+
+                // 每行补齐到最大列数，保证单元格索引稳定
+                for (int k = 0; k < rows.Count; k++)
+                {
+                    var r = rows[k];
+                    if (r.Length < maxColumns)
+                    {
+                        var padded = new string[maxColumns];
+                        Array.Copy(r, padded, r.Length);
+                        rows[k] = padded;
+                    }
                 }
 
                 sheets.Add(new SheetData
                 {
                     Name = sheetName,
+                    Columns = Enumerable.Range(0, maxColumns).Select(ColumnLetter).ToArray(),
                     Rows = rows.ToArray(),
-                    Truncated = anyTruncated,
+                    Truncated = sheetTruncated,
                     MaxColumns = maxColumns,
                 });
-                totalRows += rows.Count;
+                totalRows += total;
             }
 
             return new SheetSetModel 
