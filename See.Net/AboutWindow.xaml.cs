@@ -1,5 +1,4 @@
 using System.Diagnostics;
-using System.Reflection;
 using System.Windows;
 using System.Windows.Navigation;
 
@@ -8,20 +7,22 @@ namespace See;
 /// <summary>关于对话框：产品名、版本、开源/文档地址、飞书群与版权信息。</summary>
 public partial class AboutWindow : Window
 {
-    public AboutWindow()
+    private readonly Action? _checkUpdates;
+
+    public AboutWindow(Action? checkUpdates = null)
     {
         InitializeComponent();
-
-        var asm = Assembly.GetExecutingAssembly();
-        var version = asm.GetName().Version;
-        var copyright = asm.GetCustomAttribute<AssemblyCopyrightAttribute>()?.Copyright
-            ?? "© 2026 See. All rights reserved.";
+        _checkUpdates = checkUpdates;
 
         ProductNameText.Text = "See.Net";
-        VersionText.Text = version is null
-            ? "版本未知"
-            : $"版本 {version.Major}.{version.Minor}.{version.Build}";
-        CopyrightText.Text = copyright;
+        VersionText.Text = $"版本 {AppVersion.Display}";
+        CopyrightText.Text = "© 2026 See. All rights reserved.";
+        CheckUpdatesButton.Visibility = _checkUpdates is null ? Visibility.Collapsed : Visibility.Visible;
+    }
+
+    private void OnCheckUpdatesClick(object sender, RoutedEventArgs e)
+    {
+        try { _checkUpdates?.Invoke(); } catch { }
     }
 
     private void OnLinkClick(object sender, RequestNavigateEventArgs e)

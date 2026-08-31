@@ -86,52 +86,70 @@ jobs:
           $mb = [math]::Round(((Get-ChildItem artifacts/publish -Recurse -File | Measure-Object Length -Sum).Sum)/1MB,2)
           echo "发布目录大小: $mb MB"
 
-      - name: 打包绿色版 ZIP
+      - name: 生成发布说明（自上一 tag 的提交记录）
         shell: pwsh
         run: |
           $version = "${{ steps.ver.outputs.version }}"
-          $zip = "artifacts/See.Net-$version-portable-x64.zip"
-          Compress-Archive -Path "artifacts/publish/*" -DestinationPath $zip -CompressionLevel Optimal
-          echo "zip_path=$zip" >> $env:GITHUB_OUTPUT
-          echo "zip_mb=$([math]::Round((Get-Item $zip).Length/1MB,2)) MB"
+          "## See.Net $version" | Set-Content RELEASE_NOTES.md
+          $prev = git describe --tags --abbrev=0 "${{ github.sha }}~1" 2>$null
+          if ($prev) {
+            git log --oneline "$prev..${{ github.sha }}" | Add-Content RELEASE_NOTES.md
+          } else {
+            "" | Add-Content RELEASE_NOTES.md
+          }
 
-      - name: 编译 Inno Setup 安装包
+      - name: 安装 vpk CLI（与 NuGet 包 Velopack 版本一致）
         shell: pwsh
         run: |
-          $version = "${{ steps.ver.outputs.version }}"
-          $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
-          if (-not (Test-Path $iscc)) { throw "未找到 Inno Setup 6: $iscc" }
-          & $iscc packaging/inno/setup.iss `
-            "/DSourceDir=$env:GITHUB_WORKSPACE\artifacts\publish" `
-            "/DVersion=$version" `
-            "/DOutputDir=$env:GITHUB_WORKSPACE\artifacts" `
-            "/DRepoRoot=$env:GITHUB_WORKSPACE"
-          if ($LASTEXITCODE -ne 0) { throw "ISCC 编译失败" }
-          $setup = "artifacts/See.Net-$version-Setup.exe"
-          if (-not (Test-Path $setup)) { throw "安装包未生成: $setup" }
-          echo "setup_mb=$([math]::Round((Get-Item $setup).Length/1MB,2)) MB"
+          dotnet tool install -g vpk --version 1.2.0
+          dotnet tool list -g | Select-String vpk
 
-      - name: 列出产物
+      - name: 下载上一 Velopack 版本（用于生成 delta 增量包）
         shell: pwsh
         run: |
-          Get-ChildItem artifacts -File | Select-Object Name, @{N='SizeMB';E={[math]::Round($_.Length/1MB,2)}} | Format-Table -AutoSize
+          $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
+          vpk download github `
+            --repoUrl "https://github.com/${{ github.repository }}" `
+            --token "${{ secrets.GITHUB_TOKEN }}" `
+            --outputDir artifacts/velopack
+          if ($LASTEXITCODE -ne 0) { Write-Host "未找到上一 Velopack 版本，跳过 delta（首次发布属正常）" }
 
-      - name: 上传构建产物（供下载）
-        uses: actions/upload-artifact@v4
-        with:
-          name: See.Net-${{ steps.ver.outputs.version }}
-          path: |
-            artifacts/See.Net-${{ steps.ver.outputs.version }}-Setup.exe
-            artifacts/See.Net-${{ steps.ver.outputs.version }}-portable-x64.zip
-          retention-days: 30
+      - name: vpk 打包（安装包 + full/delta 更新包 + Portable.zip + 更新清单）
+        shell: pwsh
+        run: |
+          $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
+          vpk pack `
+            -u "See.Net" `
+            -v ${{ steps.ver.outputs.version }} `
+            -r win-x64 `
+            -p artifacts/publish `
+            -o artifacts/velopack `
+            -e See.exe `
+            --packTitle "See.Net" `
+            --packAuthors "FNSoftware" `
+            -i packaging/assets/app.ico `
+            --releaseNotes RELEASE_NOTES.md
+          if ($LASTEXITCODE -ne 0) { throw "vpk pack 失败" }
+          if (-not (Test-Path "artifacts/velopack/See.Net-win-Setup.exe")) { throw "Velopack 安装包未生成" }
+          Get-ChildItem artifacts/velopack -File | Select-Object Name, @{N='SizeMB';E={[math]::Round($_.Length/1MB,2)}} | Format-Table -AutoSize
 
       - name: 发布到 GitHub Release（tag 触发时）
         if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
+        shell: pwsh
+        run: |
+          $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
+          vpk upload github `
+            --repoUrl "https://github.com/${{ github.repository }}" `
+            --token "${{ secrets.GITHUB_TOKEN }}" `
+            --outputDir artifacts/velopack `
+            --publish `
+            --releaseName "See.Net ${{ steps.ver.outputs.version }}" `
+            --tag ${{ github.ref_name }}
+          if ($LASTEXITCODE -ne 0) { throw "vpk upload 失败" }
+
+      - name: 上传构建产物（供 workflow_dispatch 手动下载）
+        uses: actions/upload-artifact@v4
         with:
-          tag_name: ${{ github.ref_name }}
-          name: See.Net ${{ steps.ver.outputs.version }}
-          generate_release_notes: true
-          files: |
-            artifacts/See.Net-${{ steps.ver.outputs.version }}-Setup.exe
-            artifacts/See.Net-${{ steps.ver.outputs.version }}-portable-x64.zip
+          name: See.Net-${{ steps.ver.outputs.version }}
+          path: artifacts/velopack/**
+          retention-days: 30

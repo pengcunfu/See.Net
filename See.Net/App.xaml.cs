@@ -4,6 +4,7 @@ using System.Windows.Threading;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Win32;
 using See.Services;
+using See.ViewModels;
 
 namespace See;
 
@@ -15,10 +16,19 @@ public partial class App : Application
     private SingleInstanceService? _singleton;
     private SettingsWindow? _settingsWindow;
     private AboutWindow? _aboutWindow;
+    private UpdateWindow? _updateWindow;
+
+    /// <summary>Velopack 钩子标志：首次安装运行 / 自更新重启到新版本。</summary>
+    private bool _firstRun;
+    private string? _updatedTo;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // Velopack 钩子结果由 Program.Main 填充（首次安装 / 已更新），用于托盘气泡提示。
+        _firstRun = StartupHooks.FirstRun;
+        _updatedTo = StartupHooks.UpdatedTo;
 
         // 无主窗口：托盘常驻 + 预览浮窗；退出需显式 Shutdown
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
@@ -36,6 +46,7 @@ public partial class App : Application
         var services = new ServiceCollection();
         services.AddSingleton<SettingsService>();
         services.AddSingleton<BackupService>();
+        services.AddSingleton<UpdateService>();
         _services = services.BuildServiceProvider();
 
         var settings = _services.GetRequiredService<SettingsService>();
@@ -48,8 +59,17 @@ public partial class App : Application
         _shellPreview = new ShellPreviewService(settings, backup, Dispatcher);
         _shellPreview.Start();
 
-        // 系统托盘：打开文件预览、启动器、设置、关于与退出
-        _tray = new TrayIconService(OpenFileForPreview, () => _shellPreview.ShowLauncher(), OpenSettings, OpenAbout, ExitApplication);
+        // 系统托盘：打开文件预览、启动器、设置、检查更新、关于与退出
+        _tray = new TrayIconService(OpenFileForPreview, () => _shellPreview.ShowLauncher(), OpenSettings, OpenUpdateWindow, OpenAbout, ExitApplication);
+        _tray.BalloonTipClicked += OpenUpdateWindow;
+
+        // 首次安装 / 自更新成功提示；否则启动时后台静默检查更新
+        if (_firstRun)
+            _tray.ShowBalloon("欢迎使用 See.Net", "空格预览与十六进制编辑器已就绪，可从托盘菜单打开设置。");
+        else if (_updatedTo is not null)
+            _tray.ShowBalloon("See.Net 已更新", $"已升级到 v{_updatedTo}。");
+        else
+            CheckForUpdatesOnStartup();
 
         // 随 Windows 启动（启动文件夹快捷方式，MSIX 下注册表 Run 会被虚拟化）。
         AutoStartService.Apply(settings.Current.AutoStartEnabled);
@@ -165,10 +185,67 @@ public partial class App : Application
                 _aboutWindow = null;
             }
         }
-        _aboutWindow = new AboutWindow();
+        _aboutWindow = new AboutWindow(OpenUpdateWindow);
         _aboutWindow.Closed += (_, _) => _aboutWindow = null;
         _aboutWindow.Show();
         _aboutWindow.Activate();
+    }
+
+    /// <summary>启动时后台静默检查更新（受设置开关控制）；发现新版本用托盘气泡轻提示。</summary>
+    private async void CheckForUpdatesOnStartup()
+    {
+        try
+        {
+            var services = _services;
+            if (services is null) return;
+            var settings = services.GetRequiredService<SettingsService>();
+            if (!settings.Current.CheckUpdatesOnStartup) return;
+
+            var updater = services.GetRequiredService<UpdateService>();
+            if (!updater.IsUpdateCapable) return; // 调试运行 / 旧版 Inno 安装：跳过
+
+            var info = await updater.CheckForUpdatesAsync();
+            if (info is null) return; // 已是最新
+
+            _tray?.ShowBalloon("See.Net 有可用更新",
+                $"新版本 v{info.TargetFullRelease.Version} 已发布，点击此提示可查看。");
+        }
+        catch { /* 离线 / GitHub 限流 / 网络异常：静默失败，不打扰用户 */ }
+    }
+
+    /// <summary>打开更新窗口（单实例复用，关闭后重建）。</summary>
+    private void OpenUpdateWindow()
+    {
+        if (Dispatcher.CheckAccess())
+            DoOpenUpdateWindow();
+        else
+            Dispatcher.Invoke(DoOpenUpdateWindow);
+    }
+
+    private void DoOpenUpdateWindow()
+    {
+        if (_services is null) return;
+        if (_updateWindow is not null)
+        {
+            try
+            {
+                _updateWindow.Show();
+                _updateWindow.Activate();
+                _updateWindow.WindowState = WindowState.Normal;
+                return;
+            }
+            catch (ArgumentException)
+            {
+                // 窗口 VisualTree 已损坏（如跨线程关闭后引用未清空），重建窗口
+                try { _updateWindow.Close(); } catch { }
+                _updateWindow = null;
+            }
+        }
+        var updater = _services.GetRequiredService<UpdateService>();
+        _updateWindow = new UpdateWindow(new UpdateViewModel(updater));
+        _updateWindow.Closed += (_, _) => _updateWindow = null;
+        _updateWindow.Show();
+        _updateWindow.Activate();
     }
 
     private void ExitApplication()

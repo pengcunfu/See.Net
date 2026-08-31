@@ -38,7 +38,11 @@
         <TextBlock Text="扫码加入飞书群" Foreground="#888888" FontSize="12" Margin="0,0,0,16"/>
 
         <TextBlock x:Name="CopyrightText" Foreground="#888888" FontSize="12" Margin="0,0,0,18"/>
-        <Button Content="确定" IsDefault="True" IsCancel="True" Click="OnOkClick"
-                HorizontalAlignment="Right" Padding="22,5"/>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="CheckUpdatesButton" Content="检查更新" Click="OnCheckUpdatesClick"
+                    Padding="18,5" Margin="0,0,8,0"/>
+            <Button Content="确定" IsDefault="True" IsCancel="True" Click="OnOkClick"
+                    Padding="22,5"/>
+        </StackPanel>
     </StackPanel>
 </Window>

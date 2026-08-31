@@ -11,14 +11,19 @@ public sealed class TrayIconService : IDisposable
     private readonly Action _openFile;
     private readonly Action _showLauncher;
     private readonly Action _showSettings;
+    private readonly Action _checkUpdates;
     private readonly Action _showAbout;
     private readonly Action _exit;
 
-    public TrayIconService(Action openFile, Action showLauncher, Action showSettings, Action showAbout, Action exit)
+    /// <summary>托盘气泡被点击（如"有可用更新"提示），由外部订阅打开更新窗口。</summary>
+    public event Action? BalloonTipClicked;
+
+    public TrayIconService(Action openFile, Action showLauncher, Action showSettings, Action checkUpdates, Action showAbout, Action exit)
     {
         _openFile = openFile;
         _showLauncher = showLauncher;
         _showSettings = showSettings;
+        _checkUpdates = checkUpdates;
         _showAbout = showAbout;
         _exit = exit;
         _icon = new NotifyIcon
@@ -26,6 +31,7 @@ public sealed class TrayIconService : IDisposable
             Text = "See.Net 空格预览",
             Visible = true,
         };
+        _icon.BalloonTipClicked += (_, _) => BalloonTipClicked?.Invoke();
 
         try
         {
@@ -42,6 +48,7 @@ public sealed class TrayIconService : IDisposable
         var menu = new ContextMenuStrip();
         menu.Items.Add("打开文件预览…", null, (_, _) => _openFile());
         menu.Items.Add("设置", null, (_, _) => _showSettings());
+        menu.Items.Add("检查更新", null, (_, _) => _checkUpdates());
         menu.Items.Add("关于", null, (_, _) => _showAbout());
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("退出", null, (_, _) => _exit());

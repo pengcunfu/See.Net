@@ -11,6 +11,7 @@ public sealed class AppSettings
     public bool BackupEnabled { get; set; } = true;
     public bool WordWrap { get; set; } = true;
     public bool AutoStartEnabled { get; set; } = true;
+    public bool CheckUpdatesOnStartup { get; set; } = true;
     public bool TrayHintShown { get; set; }
     public double WindowWidth { get; set; } = 1200;
     public double WindowHeight { get; set; } = 760;

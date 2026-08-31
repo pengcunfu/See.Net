@@ -32,6 +32,7 @@ public partial class SettingsWindow : Window
         var s = settings.Current;
         AutoStartCheck.IsChecked = s.AutoStartEnabled;
         BackupCheck.IsChecked = s.BackupEnabled;
+        CheckUpdatesCheck.IsChecked = s.CheckUpdatesOnStartup;
         FontFamilyCombo.Text = s.TextFontFamily;
         TextFontSizeBox.Text = s.TextFontSize.ToString("0.##", CultureInfo.InvariantCulture);
         HexFontSizeBox.Text = s.HexFontSize.ToString("0.##", CultureInfo.InvariantCulture);
@@ -94,6 +95,7 @@ public partial class SettingsWindow : Window
         var s = _settings.Current;
         s.AutoStartEnabled = autoStart;
         s.BackupEnabled = BackupCheck.IsChecked == true;
+        s.CheckUpdatesOnStartup = CheckUpdatesCheck.IsChecked == true;
         s.TextFontFamily = fontFamilyText;
         s.TextFontSize = textFontSize;
         s.HexFontSize = fontSize;
