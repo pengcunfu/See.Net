@@ -11,7 +11,7 @@
     <ApplicationIcon>..\packaging\assets\app.ico</ApplicationIcon>
     <AssemblyName>See</AssemblyName>
     <RootNamespace>See</RootNamespace>
-    <Version>1.1.0</Version>
+    <Version>1.1.1</Version>
     <Product>See</Product>
     <Company>Fireneb-炎序星图</Company>
     <Copyright>© 2026 Fireneb-炎序星图. All rights reserved.</Copyright>
