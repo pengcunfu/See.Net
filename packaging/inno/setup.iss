@@ -58,7 +58,7 @@ UninstallDisplayName={#MyAppName}
 VersionInfoVersion={#Version}
 
 [Languages]
-Name: "chinesesimp"; MessagesFile: "compiler:Languages\ChineseSimplified.isl"
+Name: "chinesesimp"; MessagesFile: "{#RepoRoot}\packaging\inno\languages\ChineseSimplified.isl"
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]

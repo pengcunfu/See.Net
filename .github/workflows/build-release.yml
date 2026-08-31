@@ -102,10 +102,10 @@ jobs:
           $iscc = "C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
           if (-not (Test-Path $iscc)) { throw "未找到 Inno Setup 6: $iscc" }
           & $iscc packaging/inno/setup.iss `
-            "/DSourceDir=artifacts/publish" `
+            "/DSourceDir=$env:GITHUB_WORKSPACE\artifacts\publish" `
             "/DVersion=$version" `
-            "/DOutputDir=artifacts" `
-            "/DRepoRoot=."
+            "/DOutputDir=$env:GITHUB_WORKSPACE\artifacts" `
+            "/DRepoRoot=$env:GITHUB_WORKSPACE"
           if ($LASTEXITCODE -ne 0) { throw "ISCC 编译失败" }
           $setup = "artifacts/See.Net-$version-Setup.exe"
           if (-not (Test-Path $setup)) { throw "安装包未生成: $setup" }
