@@ -13,8 +13,8 @@
     <RootNamespace>See</RootNamespace>
     <Version>1.1.0</Version>
     <Product>See</Product>
-    <Company>See</Company>
-    <Copyright>© 2026 See. All rights reserved.</Copyright>
+    <Company>Fireneb-炎序星图</Company>
+    <Copyright>© 2026 Fireneb-炎序星图. All rights reserved.</Copyright>
   </PropertyGroup>
 
   <!-- 仅托盘服务显式使用 WinForms，移除隐式全局 using，避免与 WPF 类型命名冲突 -->

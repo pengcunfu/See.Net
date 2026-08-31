@@ -10,7 +10,7 @@
 ;   ISCC setup.iss /DSourceDir=..\..\artifacts\publish /DVersion=1.0.0 /DOutputDir=..\..\artifacts
 
 #define MyAppName "See.Net"
-#define MyAppPublisher "FNSoftware"
+#define MyAppPublisher "Fireneb-炎序星图"
 #define MyAppExeName "See.exe"
 #define MyAppURL "https://github.com/yourname/See.Net"
 
@@ -44,7 +44,7 @@ DisableProgramGroupPage=yes
 PrivilegesRequiredOverridesAllowed=dialog
 PrivilegesRequired=lowest
 OutputDir={#OutputDir}
-OutputBaseFilename=See.Net-{#Version}-Setup
+OutputBaseFilename=See-{#Version}-Setup
 SetupIconFile={#RepoRoot}\packaging\assets\app.ico
 UninstallDisplayIcon={app}\{#MyAppExeName}
 Compression=lzma2/max

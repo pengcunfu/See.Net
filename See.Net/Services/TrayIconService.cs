@@ -28,7 +28,7 @@ public sealed class TrayIconService : IDisposable
         _exit = exit;
         _icon = new NotifyIcon
         {
-            Text = "See.Net 空格预览",
+            Text = "See 空格预览",
             Visible = true,
         };
         _icon.BalloonTipClicked += (_, _) => BalloonTipClicked?.Invoke();

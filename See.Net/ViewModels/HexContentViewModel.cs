@@ -169,7 +169,7 @@ public sealed partial class HexContentViewModel : ObservableObject, IDisposable
         }
         catch (Exception ex)
         {
-            MessageBox.Show($"保存失败：{ex.Message}", "See.Net", MessageBoxButton.OK, MessageBoxImage.Error);
+            MessageBox.Show($"保存失败：{ex.Message}", "See", MessageBoxButton.OK, MessageBoxImage.Error);
         }
     }
 

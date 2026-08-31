@@ -93,7 +93,7 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ steps.ver.outputs.version }}"
-          "## See.Net $version" | Set-Content RELEASE_NOTES.md
+          "## See $version" | Set-Content RELEASE_NOTES.md
           $prev = ""
           # 用管道捕获 stdout 而非依赖 $LASTEXITCODE（浅克隆/无上一 tag 时 describe 会失败，属正常）
           git describe --tags --abbrev=0 "${{ github.sha }}~1" 2>$null | ForEach-Object { $prev = $_ }
@@ -125,19 +125,19 @@ jobs:
         run: |
           $env:PATH = "$env:USERPROFILE\.dotnet\tools;$env:PATH"
           vpk pack `
-            -u "See.Net" `
+            -u "See" `
             -v ${{ steps.ver.outputs.version }} `
             -r win-x64 `
             -p artifacts/publish `
             -o artifacts/velopack `
             -e See.exe `
-            --packTitle "See.Net" `
-            --packAuthors "FNSoftware" `
+            --packTitle "See" `
+            --packAuthors "Fireneb-炎序星图" `
             -i packaging/assets/app.ico `
             --framework net10-x64-desktop `
             --releaseNotes RELEASE_NOTES.md
           if ($LASTEXITCODE -ne 0) { throw "vpk pack 失败" }
-          if (-not (Test-Path "artifacts/velopack/See.Net-win-Setup.exe")) { throw "Velopack 安装包未生成" }
+          if (-not (Test-Path "artifacts/velopack/See-win-Setup.exe")) { throw "Velopack 安装包未生成" }
           Get-ChildItem artifacts/velopack -File | Select-Object Name, @{N='SizeMB';E={[math]::Round($_.Length/1MB,2)}} | Format-Table -AutoSize
 
       - name: 发布到 GitHub Release（tag 触发时）
@@ -150,13 +150,13 @@ jobs:
             --token "${{ secrets.GITHUB_TOKEN }}" `
             --outputDir artifacts/velopack `
             --publish `
-            --releaseName "See.Net ${{ steps.ver.outputs.version }}" `
+            --releaseName "See ${{ steps.ver.outputs.version }}" `
             --tag ${{ github.ref_name }}
           if ($LASTEXITCODE -ne 0) { throw "vpk upload 失败" }
 
       - name: 上传构建产物（供 workflow_dispatch 手动下载）
         uses: actions/upload-artifact@v4
         with:
-          name: See.Net-${{ steps.ver.outputs.version }}
+          name: See-${{ steps.ver.outputs.version }}
           path: artifacts/velopack/**
           retention-days: 30

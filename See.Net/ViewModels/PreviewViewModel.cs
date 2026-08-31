@@ -117,7 +117,7 @@ public partial class PreviewViewModel : ObservableObject
         if (!HasUnsavedChanges) return true;
         var result = MessageBox.Show(
             $"“{CurrentFile?.Name}” 有未保存的修改，是否保存？",
-            "See.Net",
+            "See",
             MessageBoxButton.YesNoCancel,
             MessageBoxImage.Warning,
             MessageBoxResult.No);

@@ -229,13 +229,13 @@ public partial class MainWindow : Window
                     s.TrayHintShown = true;
                     _settings.Save();
                     _tray?.ShowBalloon(
-                        "See.Net 仍在后台运行",
+                        "See 仍在后台运行",
                         "已最小化到托盘。在 Windows 资源管理器中选中文件后按空格即可快速预览。双击托盘图标可重新打开。");
                 }
             }
             catch (Exception ex)
             {
-                MessageBox.Show($"关闭窗口时出错：{ex.Message}", "See.Net", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show($"关闭窗口时出错：{ex.Message}", "See", MessageBoxButton.OK, MessageBoxImage.Error);
                 _hideRequested = false;
             }
         }));

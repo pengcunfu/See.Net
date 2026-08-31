@@ -55,7 +55,7 @@ public partial class SettingsWindow : Window
         string fontFamilyText = FontFamilyCombo.Text.Trim();
         if (string.IsNullOrWhiteSpace(fontFamilyText))
         {
-            MessageBox.Show("请输入或选择字体名称。", "See.Net",
+            MessageBox.Show("请输入或选择字体名称。", "See",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
@@ -63,7 +63,7 @@ public partial class SettingsWindow : Window
         if (!double.TryParse(TextFontSizeBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double textFontSize)
             || textFontSize < MinFontSize || textFontSize > MaxFontSize)
         {
-            MessageBox.Show($"文本字号需在 {MinFontSize:0}–{MaxFontSize:0} 之间。", "See.Net",
+            MessageBox.Show($"文本字号需在 {MinFontSize:0}–{MaxFontSize:0} 之间。", "See",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
@@ -71,14 +71,14 @@ public partial class SettingsWindow : Window
         if (!double.TryParse(HexFontSizeBox.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double fontSize)
             || fontSize < MinHexFontSize || fontSize > MaxHexFontSize)
         {
-            MessageBox.Show($"十六进制字号需在 {MinHexFontSize:0}–{MaxHexFontSize:0} 之间。", "See.Net",
+            MessageBox.Show($"十六进制字号需在 {MinHexFontSize:0}–{MaxHexFontSize:0} 之间。", "See",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
         if (!int.TryParse(BytesPerRowBox.Text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int bytesPerRow)
             || bytesPerRow < MinBytesPerRow || bytesPerRow > MaxBytesPerRow)
         {
-            MessageBox.Show($"每行字节数需在 {MinBytesPerRow}–{MaxBytesPerRow} 之间。", "See.Net",
+            MessageBox.Show($"每行字节数需在 {MinBytesPerRow}–{MaxBytesPerRow} 之间。", "See",
                 MessageBoxButton.OK, MessageBoxImage.Warning);
             return;
         }
@@ -87,7 +87,7 @@ public partial class SettingsWindow : Window
         AutoStartService.Apply(autoStart);
         if (AutoStartService.IsEnabled() != autoStart)
         {
-            MessageBox.Show("开机自启动设置失败，请稍后重试。", "See.Net",
+            MessageBox.Show("开机自启动设置失败，请稍后重试。", "See",
                 MessageBoxButton.OK, MessageBoxImage.Error);
             return; // 保持对话框
         }

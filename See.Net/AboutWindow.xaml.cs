@@ -14,9 +14,9 @@ public partial class AboutWindow : Window
         InitializeComponent();
         _checkUpdates = checkUpdates;
 
-        ProductNameText.Text = "See.Net";
+        ProductNameText.Text = "See";
         VersionText.Text = $"版本 {AppVersion.Display}";
-        CopyrightText.Text = "© 2026 See. All rights reserved.";
+        CopyrightText.Text = "© 2026 Fireneb-炎序星图. All rights reserved.";
         CheckUpdatesButton.Visibility = _checkUpdates is null ? Visibility.Collapsed : Visibility.Visible;
     }
 

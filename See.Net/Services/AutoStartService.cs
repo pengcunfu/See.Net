@@ -47,7 +47,7 @@ public static class AutoStartService
             dynamic shortcut = shell.CreateShortcut(link);
             shortcut.TargetPath = Environment.ProcessPath ?? "";
             shortcut.WorkingDirectory = Path.GetDirectoryName(Environment.ProcessPath) ?? "";
-            shortcut.Description = "See.Net 空格预览";
+            shortcut.Description = "See 空格预览";
             shortcut.Save();
         }
         catch

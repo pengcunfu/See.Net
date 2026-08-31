@@ -65,9 +65,9 @@ public partial class App : Application
 
         // 首次安装 / 自更新成功提示；否则启动时后台静默检查更新
         if (_firstRun)
-            _tray.ShowBalloon("欢迎使用 See.Net", "空格预览与十六进制编辑器已就绪，可从托盘菜单打开设置。");
+            _tray.ShowBalloon("欢迎使用 See", "空格预览与十六进制编辑器已就绪，可从托盘菜单打开设置。");
         else if (_updatedTo is not null)
-            _tray.ShowBalloon("See.Net 已更新", $"已升级到 v{_updatedTo}。");
+            _tray.ShowBalloon("See 已更新", $"已升级到 v{_updatedTo}。");
         else
             CheckForUpdatesOnStartup();
 
@@ -207,7 +207,7 @@ public partial class App : Application
             var info = await updater.CheckForUpdatesAsync();
             if (info is null) return; // 已是最新
 
-            _tray?.ShowBalloon("See.Net 有可用更新",
+            _tray?.ShowBalloon("See 有可用更新",
                 $"新版本 v{info.TargetFullRelease.Version} 已发布，点击此提示可查看。");
         }
         catch { /* 离线 / GitHub 限流 / 网络异常：静默失败，不打扰用户 */ }
@@ -278,7 +278,7 @@ public partial class App : Application
             errorMessage += "建议:- 检查文件是否损坏或被加密\n- 尝试使用网页预览模式\n- 确认文件没有被其他程序占用";
         }
 
-        MessageBox.Show(errorMessage, "See.Net 错误", MessageBoxButton.OK, MessageBoxImage.Error);
+        MessageBox.Show(errorMessage, "See 错误", MessageBoxButton.OK, MessageBoxImage.Error);
         e.Handled = true;
     }
 
@@ -293,7 +293,7 @@ public partial class App : Application
                 var criticalMessage = $"程序遇到严重错误，即将退出:{ex.Message}详细信息已记录到: {AppPaths.LogDirectory}";
                 try
                 {
-                    MessageBox.Show(criticalMessage, "See.Net 严重错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                    MessageBox.Show(criticalMessage, "See 严重错误", MessageBoxButton.OK, MessageBoxImage.Error);
                 }
                 catch { }
             }

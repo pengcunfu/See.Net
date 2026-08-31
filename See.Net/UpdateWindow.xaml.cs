@@ -102,7 +102,7 @@ public partial class UpdateWindow : Window
             case UpdateFlowState.ReadyToRestart:
                 if (MessageBox.Show(
                         "即将退出并重启应用以完成更新。\n未保存的编辑内容可能丢失，是否继续？",
-                        "See.Net 更新",
+                        "See 更新",
                         MessageBoxButton.OKCancel,
                         MessageBoxImage.Question) != MessageBoxResult.OK)
                     return;
