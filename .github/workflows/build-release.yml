@@ -26,8 +26,10 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: 检出代码
+      - name: 检出代码（完整历史，供生成发布说明 / delta）
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: 安装 .NET
         uses: actions/setup-dotnet@v4
@@ -92,12 +94,15 @@ jobs:
         run: |
           $version = "${{ steps.ver.outputs.version }}"
           "## See.Net $version" | Set-Content RELEASE_NOTES.md
-          $prev = git describe --tags --abbrev=0 "${{ github.sha }}~1" 2>$null
+          $prev = ""
+          # 用管道捕获 stdout 而非依赖 $LASTEXITCODE（浅克隆/无上一 tag 时 describe 会失败，属正常）
+          git describe --tags --abbrev=0 "${{ github.sha }}~1" 2>$null | ForEach-Object { $prev = $_ }
           if ($prev) {
             git log --oneline "$prev..${{ github.sha }}" | Add-Content RELEASE_NOTES.md
           } else {
             "" | Add-Content RELEASE_NOTES.md
           }
+          exit 0
 
       - name: 安装 vpk CLI（与 NuGet 包 Velopack 版本一致）
         shell: pwsh
